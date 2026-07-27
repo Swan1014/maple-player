@@ -177,6 +177,14 @@ header h1 {
   align-items: center;
   padding: 15px 20px;
   border-bottom: 1px solid #333;
+  border-left: 4px solid transparent; /* 선택 표시를 위한 여백 */
+  box-sizing: border-box;
+}
+
+/* ⭐️ 현재 재생 중인 큐 아이템 하이라이트 */
+.queue-item.active {
+  background-color: #2a2a2a;
+  border-left-color: #ff7f00;
 }
 
 .queue-info {
