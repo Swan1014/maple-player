@@ -1,4 +1,4 @@
-// HTML 요소들 가져오기
+// HTML 요소 가져오기
 const trackListContainer = document.getElementById('trackList');
 const currentTitle = document.getElementById('currentTitle');
 const playBtn = document.getElementById('playBtn');
@@ -8,41 +8,44 @@ const searchInput = document.getElementById('searchInput');
 
 const currentAudio = document.getElementById('mainAudio');
 
-// 상태를 저장할 변수들
+// 상태 변수
 let tracks = [];
 let currentIndex = -1;
 
-// ⭐️ 1. iOS 홈 화면 앱(PWA) 전용 백그라운드 동결 방지 (Web Audio API)
-let audioCtx = null;
-
-function keepAudioAlive() {
-  // 아이폰 오디오 세션이 잠들지 않도록 백그라운드 무음 신호 유지
-  if (!audioCtx) {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      audioCtx = new AudioContext();
-      const buffer = audioCtx.createBuffer(1, 1, 22050);
-      const source = audioCtx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioCtx.destination);
-      source.start(0);
+// ⭐️ 핵심: iOS 백그라운드 세션 끊김 자동 복구 재생 함수
+async function safePlay() {
+  try {
+    // 1. 일반 재생 시도
+    await currentAudio.play();
+  } catch (error) {
+    console.warn("iOS 백그라운드 세션 끊김 감지. 오디오 장치 재연결 시도:", error);
+    
+    // 2. iOS가 일시정지 중 오디오 세션을 끊었을 때: 현재 위치 기억 후 오디오 재로드
+    const savedTime = currentAudio.currentTime;
+    currentAudio.load(); // 하드웨어 오디오 세션 강제 재연결
+    currentAudio.currentTime = savedTime; // 일시정지했던 시점으로 복구
+    
+    try {
+      await currentAudio.play();
+    } catch (retryError) {
+      console.error("최종 재생 실패:", retryError);
     }
-  }
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
   }
 }
 
 // 오디오 상태 동기화
 currentAudio.addEventListener('play', () => {
   playBtn.textContent = '⏸️'; 
-  keepAudioAlive(); // 재생될 때 무음 세션 활성화
-  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = 'playing';
+  }
 });
 
 currentAudio.addEventListener('pause', () => {
   playBtn.textContent = '▶️';
-  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = 'paused';
+  }
 });
 
 // data.json 파일 읽어오기
@@ -83,7 +86,7 @@ function renderTracks(trackArray) {
   });
 }
 
-// ⭐️ 2. 잠금 화면/제어 센터 설정 (백그라운드 깨우기 보정 추가)
+// 잠금 화면/제어 센터 설정
 function updateMediaSession(track) {
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -91,19 +94,8 @@ function updateMediaSession(track) {
       artist: '메이플스토리 BGM',
     });
 
-    navigator.mediaSession.setActionHandler('play', async () => {
-      keepAudioAlive();
-      const saveTime = currentAudio.currentTime; // 깨어나기 전 재생 시간 저장
-      try {
-        await currentAudio.play();
-        // 오디오 장치가 잠에서 깼을 때 시점을 강제 재설정하여 멈춤 현상 방지
-        currentAudio.currentTime = saveTime;
-      } catch (error) {
-        console.warn("재생 실패, 소스 재로드:", error);
-        currentAudio.load();
-        currentAudio.currentTime = saveTime;
-        currentAudio.play();
-      }
+    navigator.mediaSession.setActionHandler('play', () => {
+      safePlay();
     });
 
     navigator.mediaSession.setActionHandler('pause', () => {
@@ -117,9 +109,8 @@ function playTrack(index) {
   currentIndex = index;
   const track = tracks[index];
 
-  keepAudioAlive(); // 첫 재생 시 무음 세션 깨우기
   currentAudio.src = `assets/music/${track.filename}`;
-  currentAudio.play().catch(e => console.error("재생 실패:", e));
+  safePlay();
 
   currentTitle.textContent = track.title;
   updateMediaSession(track);
@@ -130,8 +121,7 @@ function togglePlay() {
   if (currentIndex === -1) return;
 
   if (currentAudio.paused) {
-    keepAudioAlive();
-    currentAudio.play().catch(e => console.error(e));
+    safePlay();
   } else {
     currentAudio.pause();
   }
@@ -152,5 +142,5 @@ searchInput.addEventListener('input', (e) => {
 // 플레이 버튼에 클릭 이벤트 달기
 playBtn.onclick = togglePlay;
 
-// 앱이 시작되면 데이터 불러오기
+// 앱 시작 시 데이터 로드
 loadTracks();
