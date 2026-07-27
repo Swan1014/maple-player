@@ -8,37 +8,40 @@ const searchInput = document.getElementById('searchInput');
 
 const currentAudio = document.getElementById('mainAudio');
 
-// ⭐️ 1. iOS 오디오 세션을 영구 유지하기 위한 무음(Silent) 오디오 생성 (Base64 무음 데이터)
-const SILENT_WAV = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
-const silentAudio = new Audio(SILENT_WAV);
-silentAudio.loop = true; // 무한 반복 설정
-
-let isSilentAudioStarted = false;
-
-// 무음 오디오 가동 함수 (iOS가 오디오 채널을 닫지 못하게 막음)
-function startSilentAudio() {
-  if (!isSilentAudioStarted) {
-    silentAudio.play().then(() => {
-      isSilentAudioStarted = true;
-    }).catch(e => console.warn("무음 오디오 가동 대기 중:", e));
-  }
-}
-
 // 상태를 저장할 변수들
 let tracks = [];
 let currentIndex = -1;
 
+// ⭐️ 1. iOS 홈 화면 앱(PWA) 전용 백그라운드 동결 방지 (Web Audio API)
+let audioCtx = null;
+
+function keepAudioAlive() {
+  // 아이폰 오디오 세션이 잠들지 않도록 백그라운드 무음 신호 유지
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      audioCtx = new AudioContext();
+      const buffer = audioCtx.createBuffer(1, 1, 22050);
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start(0);
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
 // 오디오 상태 동기화
 currentAudio.addEventListener('play', () => {
   playBtn.textContent = '⏸️'; 
-  startSilentAudio(); // 메인 노래가 재생될 때 무음 앵커도 함께 실행
+  keepAudioAlive(); // 재생될 때 무음 세션 활성화
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 });
 
 currentAudio.addEventListener('pause', () => {
   playBtn.textContent = '▶️';
-  // 메인 노래가 일시정지되어도 silentAudio는 계속 백그라운드에서 도는 중이므로
-  // iOS가 오디오 세션을 강제로 끌 수 없음!
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 });
 
@@ -80,7 +83,7 @@ function renderTracks(trackArray) {
   });
 }
 
-// 잠금 화면/제어 센터 설정
+// ⭐️ 2. 잠금 화면/제어 센터 설정 (백그라운드 깨우기 보정 추가)
 function updateMediaSession(track) {
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -89,12 +92,16 @@ function updateMediaSession(track) {
     });
 
     navigator.mediaSession.setActionHandler('play', async () => {
-      startSilentAudio();
+      keepAudioAlive();
+      const saveTime = currentAudio.currentTime; // 깨어나기 전 재생 시간 저장
       try {
         await currentAudio.play();
+        // 오디오 장치가 잠에서 깼을 때 시점을 강제 재설정하여 멈춤 현상 방지
+        currentAudio.currentTime = saveTime;
       } catch (error) {
         console.warn("재생 실패, 소스 재로드:", error);
         currentAudio.load();
+        currentAudio.currentTime = saveTime;
         currentAudio.play();
       }
     });
@@ -110,7 +117,7 @@ function playTrack(index) {
   currentIndex = index;
   const track = tracks[index];
 
-  startSilentAudio(); // 재생 시 무음 세션 깨우기
+  keepAudioAlive(); // 첫 재생 시 무음 세션 깨우기
   currentAudio.src = `assets/music/${track.filename}`;
   currentAudio.play().catch(e => console.error("재생 실패:", e));
 
@@ -122,8 +129,8 @@ function playTrack(index) {
 function togglePlay() {
   if (currentIndex === -1) return;
 
-  startSilentAudio();
   if (currentAudio.paused) {
+    keepAudioAlive();
     currentAudio.play().catch(e => console.error(e));
   } else {
     currentAudio.pause();
