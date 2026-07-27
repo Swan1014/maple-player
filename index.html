@@ -21,17 +21,33 @@
     <!-- 자바스크립트가 여기에 곡 목록을 채워넣을 거야 -->
   </main>
 
-  <!-- 하단 고정 음악 재생 바 -->
-  <footer id="playerBar">
-    <div class="now-playing">
-      <span id="currentTitle">재생 중인 곡이 없습니다</span>
+<!-- 기존 <footer> 삭제 후 아래 코드로 교체 -->
+  <div id="bottomSheet">
+    <!-- 1. 항상 보이는 플레이어 바 -->
+    <div id="playerBar">
+      <!-- 클릭하면 올라오게 할 영역 -->
+      <div class="now-playing" id="nowPlayingArea">
+        <span id="currentTitle">재생 중인 곡이 없습니다</span>
+        <span class="chevron">▲</span> <!-- 올리고 내리는 아이콘 -->
+      </div>
+      <div class="controls">
+        <button id="prevBtn">⏮</button>
+        <button id="playBtn">▶️</button>
+        <button id="nextBtn">⏭</button>
+      </div>
     </div>
-    <div class="controls">
-      <button id="prevBtn">⏮</button>
-      <button id="playBtn">▶️</button>
-      <button id="nextBtn">⏭</button>
+    
+    <!-- 2. 위로 스와이프하면 보이는 대기열 영역 -->
+    <div id="queueContainer">
+      <div class="queue-header">
+        <h3>재생 대기열</h3>
+        <button id="clearQueueBtn">비우기</button>
+      </div>
+      <div id="queueList">
+        <!-- JS가 여기에 대기열을 채워넣음 -->
+      </div>
     </div>
-  </footer>
+  </div>
 
   <!-- ⭐️ 추가: 백그라운드 유지를 위해 HTML에 직접 오디오 태그 삽입 -->
   <audio id="mainAudio" preload="metadata"></audio>
