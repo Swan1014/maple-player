@@ -6,28 +6,22 @@ const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const searchInput = document.getElementById('searchInput');
 
+// ⭐️ 1. HTML에 박아둔 오디오 요소 가져오기 (new Audio() 사용 안 함)
+const currentAudio = document.getElementById('mainAudio');
+
 // 상태를 저장할 변수들
 let tracks = [];
-let currentAudio = new Audio();
 let currentIndex = -1;
 
-currentAudio.preload = 'metadata';
-
-// ⭐️ 1. 오디오 상태 완벽 동기화 (앱 화면 & 아이폰 시스템)
-// 오디오가 진짜로 '재생'될 때 자동으로 실행됨
+// 오디오 상태 동기화
 currentAudio.addEventListener('play', () => {
   playBtn.textContent = '⏸️'; 
-  if ('mediaSession' in navigator) {
-    navigator.mediaSession.playbackState = 'playing'; // 아이폰 시스템에 '재생 중' 상태 보고
-  }
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 });
 
-// 오디오가 진짜로 '일시정지'될 때 자동으로 실행됨
 currentAudio.addEventListener('pause', () => {
   playBtn.textContent = '▶️';
-  if ('mediaSession' in navigator) {
-    navigator.mediaSession.playbackState = 'paused'; // 아이폰 시스템에 '멈춤' 상태 보고
-  }
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 });
 
 // data.json 파일 읽어오기
@@ -60,12 +54,18 @@ function renderTracks(trackArray) {
       <p>🏷️ ${track.tags.join(', ')}</p>
     `;
     
-    trackDiv.onclick = () => playTrack(index, trackArray);
+    // index가 아니라 전체 tracks 기준의 진짜 ID나 고유 번호로 재생하는 게 좋지만, 
+    // 지금은 필터링 상태에서도 원본 배열(tracks)에서 곡을 찾도록 수정
+    trackDiv.onclick = () => {
+      // 필터링된 배열의 index가 아니라, 원본 tracks에서의 진짜 index를 찾아서 재생
+      const realIndex = tracks.findIndex(t => t.title === track.title);
+      playTrack(realIndex);
+    };
     trackListContainer.appendChild(trackDiv);
   });
 }
 
-// 잠금 화면/제어 센터 설정
+// ⭐️ 2. 잠금 화면/제어 센터 설정 (에러 처리 강화)
 function updateMediaSession(track) {
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -73,13 +73,14 @@ function updateMediaSession(track) {
       artist: '메이플스토리 BGM',
     });
 
-    // ⭐️ 2. 잠금 화면 버튼의 명령을 더 안전하게 처리
-    navigator.mediaSession.setActionHandler('play', async () => {
-      try {
-        await currentAudio.play();
-      } catch (e) {
-        console.error("잠금화면 재생 실패:", e);
-      }
+    navigator.mediaSession.setActionHandler('play', () => {
+      // 잠금화면에서 play 시도 시, 브라우저 정책 차단(NotAllowedError)을 방지하기 위한 강제 실행
+      currentAudio.play().catch(error => {
+        console.warn("잠금화면 재생 차단됨. 재시도합니다.", error);
+        // 간혹 일시정지 후 버퍼가 끊기는 현상 방지를 위해 강제로 로드 후 재생
+        currentAudio.load();
+        currentAudio.play();
+      });
     });
 
     navigator.mediaSession.setActionHandler('pause', () => {
@@ -89,12 +90,16 @@ function updateMediaSession(track) {
 }
 
 // 음악 재생 함수
-function playTrack(index, trackArray) {
+function playTrack(index) {
   currentIndex = index;
-  const track = trackArray[index];
+  const track = tracks[index];
 
+  // ⭐️ 3. iOS 캐시 이슈 방지를 위해 쿼리 파라미터를 붙여보는 트릭 (선택사항이지만 안정성을 높임)
+  // currentAudio.src = `assets/music/${track.filename}?t=${new Date().getTime()}`; 
   currentAudio.src = `assets/music/${track.filename}`;
-  currentAudio.play();
+  
+  // play()는 비동기 프로미스를 반환하므로 에러 캐치
+  currentAudio.play().catch(e => console.error("재생 실패:", e));
 
   currentTitle.textContent = track.title;
   updateMediaSession(track);
@@ -104,9 +109,8 @@ function playTrack(index, trackArray) {
 function togglePlay() {
   if (currentIndex === -1) return;
 
-  // ⭐️ 3. 복잡한 변수 대신 내장된 paused 속성을 사용해 상태 확인
   if (currentAudio.paused) {
-    currentAudio.play();
+    currentAudio.play().catch(e => console.error(e));
   } else {
     currentAudio.pause();
   }
