@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <!-- 모바일 화면에 꽉 차게, 아이폰 앱처럼 보이게 하는 필수 태그들 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Maple Player</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 상단 검색 영역 -->
+  <header>
+    <h1>Maple Player 🍁</h1>
+    <input type="text" id="searchInput" placeholder="곡 제목, 설명, 태그로 검색해보세요...">
+  </header>
+
+  <!-- 음악 리스트가 뜰 영역 -->
+  <main id="trackList">
+    <!-- 자바스크립트가 여기에 곡 목록을 채워넣을 거야 -->
+  </main>
+
+  <!-- 하단 고정 음악 재생 바 -->
+  <footer id="playerBar">
+    <div class="now-playing">
+      <span id="currentTitle">재생 중인 곡이 없습니다</span>
+    </div>
+    <div class="controls">
+      <button id="prevBtn">⏮</button>
+      <button id="playBtn">▶️</button>
+      <button id="nextBtn">⏭</button>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

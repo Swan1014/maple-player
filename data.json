@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "title": "Floral Life",
+    "description": "헤네시스 마을 브금. 들으면 마음이 편안해진다.",
+    "tags": ["마을", "빅토리아아일랜드", "평화로움"],
+    "filename": "FloralLife.mp3"
+  },
+  {
+    "id": 2,
+    "title": "Start The Adventure",
+    "description": "메이플스토리 로그인 타이틀 화면 BGM. 근본 그 자체.",
+    "tags": ["로그인", "근본", "웅장함"],
+    "filename": "Title.mp3"
+  }
+]
