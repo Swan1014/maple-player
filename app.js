@@ -12,7 +12,28 @@ const currentAudio = document.getElementById('mainAudio');
 let tracks = [];
 let currentIndex = -1;
 
-// 1. 오디오 상태 동기화 (재생 / 일시정지)
+// ⭐️ 핵심: iOS 백그라운드 세션 끊김 자동 복구 재생 함수
+async function safePlay() {
+  try {
+    // 1. 일반 재생 시도
+    await currentAudio.play();
+  } catch (error) {
+    console.warn("iOS 백그라운드 세션 끊김 감지. 오디오 장치 재연결 시도:", error);
+    
+    // 2. iOS가 일시정지 중 오디오 세션을 끊었을 때: 현재 위치 기억 후 오디오 재로드
+    const savedTime = currentAudio.currentTime;
+    currentAudio.load(); // 하드웨어 오디오 세션 강제 재연결
+    currentAudio.currentTime = savedTime; // 일시정지했던 시점으로 복구
+    
+    try {
+      await currentAudio.play();
+    } catch (retryError) {
+      console.error("최종 재생 실패:", retryError);
+    }
+  }
+}
+
+// 오디오 상태 동기화
 currentAudio.addEventListener('play', () => {
   playBtn.textContent = '⏸️'; 
   if ('mediaSession' in navigator) {
@@ -27,14 +48,7 @@ currentAudio.addEventListener('pause', () => {
   }
 });
 
-// 2. 앱 화면으로 다시 돌아왔을 때 상태 복구 (UI 꼬임 방지)
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && currentIndex !== -1) {
-    playBtn.textContent = currentAudio.paused ? '▶️' : '⏸️';
-  }
-});
-
-// 3. data.json 읽어오기
+// data.json 파일 읽어오기
 async function loadTracks() {
   try {
     const response = await fetch('data.json');
@@ -46,7 +60,7 @@ async function loadTracks() {
   }
 }
 
-// 4. 화면에 곡 목록 그리기
+// 화면에 곡 목록 그리기
 function renderTracks(trackArray) {
   trackListContainer.innerHTML = ''; 
 
@@ -72,7 +86,7 @@ function renderTracks(trackArray) {
   });
 }
 
-// 5. 잠금 화면 / 제어 센터 설정 (복잡한 로직 없이 단순 play/pause만 수행)
+// 잠금 화면/제어 센터 설정
 function updateMediaSession(track) {
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -81,7 +95,7 @@ function updateMediaSession(track) {
     });
 
     navigator.mediaSession.setActionHandler('play', () => {
-      currentAudio.play().catch(e => console.error("잠금화면 재생 실패:", e));
+      safePlay();
     });
 
     navigator.mediaSession.setActionHandler('pause', () => {
@@ -90,30 +104,30 @@ function updateMediaSession(track) {
   }
 }
 
-// 6. 음악 재생 함수
+// 음악 재생 함수
 function playTrack(index) {
   currentIndex = index;
   const track = tracks[index];
 
   currentAudio.src = `assets/music/${track.filename}`;
-  currentAudio.play().catch(e => console.error("재생 실패:", e));
+  safePlay();
 
   currentTitle.textContent = track.title;
   updateMediaSession(track);
 }
 
-// 7. 재생 / 일시정지 토글 함수
+// 재생 / 일시정지 토글 함수
 function togglePlay() {
   if (currentIndex === -1) return;
 
   if (currentAudio.paused) {
-    currentAudio.play().catch(e => console.error(e));
+    safePlay();
   } else {
     currentAudio.pause();
   }
 }
 
-// 8. 검색 기능
+// 검색 기능
 searchInput.addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase();
   const filteredTracks = tracks.filter(track => {
@@ -125,8 +139,8 @@ searchInput.addEventListener('input', (e) => {
   renderTracks(filteredTracks);
 });
 
-// 버튼 이벤트 연결
+// 플레이 버튼에 클릭 이벤트 달기
 playBtn.onclick = togglePlay;
 
-// 시작
+// 앱 시작 시 데이터 로드
 loadTracks();
