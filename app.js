@@ -7,28 +7,36 @@ const nextBtn = document.getElementById('nextBtn');
 const searchInput = document.getElementById('searchInput');
 
 const currentAudio = document.getElementById('mainAudio');
-const silentAudio = document.getElementById('silentAudio'); // ⭐️ 무음 오디오 가져오기
-
-// 1초짜리 진짜 '무음(Silence)' Base64 음원 데이터
-silentAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
 
 // 상태를 저장할 변수들
 let tracks = [];
 let currentIndex = -1;
 
-// ⭐️ 무음 루프 실행 함수 (아이폰이 앱을 백그라운드에서 죽이지 못하게 방어)
-function startSilentLoop() {
-  silentAudio.play().catch(e => console.log("무음 재생 대기 중:", e));
-}
+// ⭐️ 1. iOS 홈 화면 앱(PWA) 전용 백그라운드 동결 방지 (Web Audio API)
+let audioCtx = null;
 
-function stopSilentLoop() {
-  silentAudio.pause();
+function keepAudioAlive() {
+  // 아이폰 오디오 세션이 잠들지 않도록 백그라운드 무음 신호 유지
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      audioCtx = new AudioContext();
+      const buffer = audioCtx.createBuffer(1, 1, 22050);
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start(0);
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
 }
 
 // 오디오 상태 동기화
 currentAudio.addEventListener('play', () => {
-  stopSilentLoop(); // 진짜 음악이 나오면 무음 멈춤
   playBtn.textContent = '⏸️'; 
+  keepAudioAlive(); // 재생될 때 무음 세션 활성화
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 });
 
@@ -75,7 +83,7 @@ function renderTracks(trackArray) {
   });
 }
 
-// 잠금 화면/제어 센터 설정
+// ⭐️ 2. 잠금 화면/제어 센터 설정 (백그라운드 깨우기 보정 추가)
 function updateMediaSession(track) {
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -84,13 +92,14 @@ function updateMediaSession(track) {
     });
 
     navigator.mediaSession.setActionHandler('play', async () => {
-      stopSilentLoop();
-      const saveTime = currentAudio.currentTime;
+      keepAudioAlive();
+      const saveTime = currentAudio.currentTime; // 깨어나기 전 재생 시간 저장
       try {
         await currentAudio.play();
+        // 오디오 장치가 잠에서 깼을 때 시점을 강제 재설정하여 멈춤 현상 방지
         currentAudio.currentTime = saveTime;
       } catch (error) {
-        console.warn("재생 실패시 소스 재로드:", error);
+        console.warn("재생 실패, 소스 재로드:", error);
         currentAudio.load();
         currentAudio.currentTime = saveTime;
         currentAudio.play();
@@ -99,7 +108,6 @@ function updateMediaSession(track) {
 
     navigator.mediaSession.setActionHandler('pause', () => {
       currentAudio.pause();
-      startSilentLoop(); // ⭐️ 일시정지되면 무음 루프를 틀어서 아이폰의 프로세스 Kill 방지!
     });
   }
 }
@@ -109,7 +117,7 @@ function playTrack(index) {
   currentIndex = index;
   const track = tracks[index];
 
-  stopSilentLoop();
+  keepAudioAlive(); // 첫 재생 시 무음 세션 깨우기
   currentAudio.src = `assets/music/${track.filename}`;
   currentAudio.play().catch(e => console.error("재생 실패:", e));
 
@@ -122,11 +130,10 @@ function togglePlay() {
   if (currentIndex === -1) return;
 
   if (currentAudio.paused) {
-    stopSilentLoop();
+    keepAudioAlive();
     currentAudio.play().catch(e => console.error(e));
   } else {
     currentAudio.pause();
-    startSilentLoop(); // ⭐️ 앱 내부에서 일시정지 눌렀을 때도 무음 방어선 구축
   }
 }
 
