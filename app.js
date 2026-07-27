@@ -6,37 +6,17 @@ const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const searchInput = document.getElementById('searchInput');
 
+// HTML에 있는 <audio> 태그 가져오기
 const currentAudio = document.getElementById('mainAudio');
 
-// 상태를 저장할 변수들
+// 상태 변수
 let tracks = [];
 let currentIndex = -1;
+let currentBlobUrl = null; // ⭐️ 아이폰 메모리에 올린 음악 주소
 
-// ⭐️ 1. iOS 홈 화면 앱(PWA) 전용 백그라운드 동결 방지 (Web Audio API)
-let audioCtx = null;
-
-function keepAudioAlive() {
-  // 아이폰 오디오 세션이 잠들지 않도록 백그라운드 무음 신호 유지
-  if (!audioCtx) {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      audioCtx = new AudioContext();
-      const buffer = audioCtx.createBuffer(1, 1, 22050);
-      const source = audioCtx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioCtx.destination);
-      source.start(0);
-    }
-  }
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-}
-
-// 오디오 상태 동기화
+// ⭐️ 1. 깔끔해진 상태 동기화 (충돌 일으키던 무음 신호기 삭제)
 currentAudio.addEventListener('play', () => {
   playBtn.textContent = '⏸️'; 
-  keepAudioAlive(); // 재생될 때 무음 세션 활성화
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 });
 
@@ -52,7 +32,7 @@ async function loadTracks() {
     tracks = await response.json();
     renderTracks(tracks);
   } catch (error) {
-    console.error("데이터를 불러오는데 실패했습니다:", error);
+    console.error("데이터 실패:", error);
     trackListContainer.innerHTML = "<p>곡 정보를 불러오지 못했습니다.</p>";
   }
 }
@@ -83,7 +63,7 @@ function renderTracks(trackArray) {
   });
 }
 
-// ⭐️ 2. 잠금 화면/제어 센터 설정 (백그라운드 깨우기 보정 추가)
+// ⭐️ 2. 잠금 화면/제어 센터 (이제 메모리에서 돌아가므로 절대 죽지 않음)
 function updateMediaSession(track) {
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -92,17 +72,11 @@ function updateMediaSession(track) {
     });
 
     navigator.mediaSession.setActionHandler('play', async () => {
-      keepAudioAlive();
-      const saveTime = currentAudio.currentTime; // 깨어나기 전 재생 시간 저장
       try {
         await currentAudio.play();
-        // 오디오 장치가 잠에서 깼을 때 시점을 강제 재설정하여 멈춤 현상 방지
-        currentAudio.currentTime = saveTime;
       } catch (error) {
-        console.warn("재생 실패, 소스 재로드:", error);
-        currentAudio.load();
-        currentAudio.currentTime = saveTime;
-        currentAudio.play();
+        console.warn("잠금화면 재생 에러, 재시도합니다.", error);
+        playTrack(currentIndex); // 만약의 만약에 죽더라도 처음부터 즉각 재로딩
       }
     });
 
@@ -112,25 +86,49 @@ function updateMediaSession(track) {
   }
 }
 
-// 음악 재생 함수
-function playTrack(index) {
+// ⭐️ 3. 핵심: 인터넷 스트리밍 방식에서 메모리(Blob) 로드 방식으로 완벽 교체
+async function playTrack(index) {
+  if (index < 0 || index >= tracks.length) return;
   currentIndex = index;
   const track = tracks[index];
 
-  keepAudioAlive(); // 첫 재생 시 무음 세션 깨우기
-  currentAudio.src = `assets/music/${track.filename}`;
-  currentAudio.play().catch(e => console.error("재생 실패:", e));
+  // 다운로드하는 1~2초 동안 보여줄 로딩 표시
+  currentTitle.textContent = "⏳ 불러오는 중...";
+  playBtn.textContent = '⏳';
 
-  currentTitle.textContent = track.title;
-  updateMediaSession(track);
+  try {
+    // MP3 파일을 통째로 아이폰 RAM으로 다운로드 (핵심)
+    const response = await fetch(`assets/music/${track.filename}`);
+    if (!response.ok) throw new Error("네트워크 에러");
+    const blob = await response.blob();
+
+    // 혹시 이전에 듣던 곡이 메모리에 남아있다면 지워주기 (아이폰 용량 꽉 참 방지)
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl);
+    }
+
+    // RAM에 올라간 파일로 새로운 내부용 주소 만들기
+    currentBlobUrl = URL.createObjectURL(blob);
+
+    // 내부 주소로 재생
+    currentAudio.src = currentBlobUrl;
+    await currentAudio.play();
+
+    // 재생 성공 시 UI 업데이트
+    currentTitle.textContent = track.title;
+    updateMediaSession(track);
+  } catch (error) {
+    console.error("재생 실패:", error);
+    currentTitle.textContent = "❌ 재생 실패 (다시 눌러주세요)";
+    playBtn.textContent = '▶️';
+  }
 }
 
-// 재생 / 일시정지 토글 함수
+// 재생 / 일시정지 토글
 function togglePlay() {
   if (currentIndex === -1) return;
 
   if (currentAudio.paused) {
-    keepAudioAlive();
     currentAudio.play().catch(e => console.error(e));
   } else {
     currentAudio.pause();
@@ -149,8 +147,8 @@ searchInput.addEventListener('input', (e) => {
   renderTracks(filteredTracks);
 });
 
-// 플레이 버튼에 클릭 이벤트 달기
+// 버튼 이벤트
 playBtn.onclick = togglePlay;
 
-// 앱이 시작되면 데이터 불러오기
+// 시작
 loadTracks();
