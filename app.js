@@ -8,15 +8,16 @@ const searchInput = document.getElementById('searchInput');
 
 const currentAudio = document.getElementById('mainAudio');
 
-// 상태를 저장할 변수들
+// ⭐️ 1. 대기열(Queue)과 기록(History)을 저장할 변수 추가
 let tracks = [];
 let currentIndex = -1;
+let customQueue = []; // 사용자가 ➕ 버튼으로 추가한 '다음에 재생할 곡들'
+let playHistory = []; // '이전 곡' 버튼을 위한 기록
 
-// ⭐️ 1. iOS 홈 화면 앱(PWA) 전용 백그라운드 동결 방지 (Web Audio API)
 let audioCtx = null;
 
+// iOS 백그라운드 동결 방지
 function keepAudioAlive() {
-  // 아이폰 오디오 세션이 잠들지 않도록 백그라운드 무음 신호 유지
   if (!audioCtx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (AudioContext) {
@@ -33,10 +34,10 @@ function keepAudioAlive() {
   }
 }
 
-// 오디오 상태 동기화
+// 오디오 상태 동기화 및 ⭐️ 자동 다음 곡 재생 로직 추가
 currentAudio.addEventListener('play', () => {
   playBtn.textContent = '⏸️'; 
-  keepAudioAlive(); // 재생될 때 무음 세션 활성화
+  keepAudioAlive(); 
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 });
 
@@ -45,7 +46,9 @@ currentAudio.addEventListener('pause', () => {
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 });
 
-// data.json 파일 읽어오기
+// ⭐️ 곡이 끝났을 때 자동으로 다음 곡 틀기
+currentAudio.addEventListener('ended', playNext);
+
 async function loadTracks() {
   try {
     const response = await fetch('data.json');
@@ -57,7 +60,7 @@ async function loadTracks() {
   }
 }
 
-// 화면에 곡 목록 그리기
+// ⭐️ 2. 화면 그리기 (리스트와 추가 버튼 기능 분리)
 function renderTracks(trackArray) {
   trackListContainer.innerHTML = ''; 
 
@@ -69,21 +72,91 @@ function renderTracks(trackArray) {
   trackArray.forEach((track) => {
     const trackDiv = document.createElement('div');
     trackDiv.className = 'track-item';
+    
+    // HTML 구조: 왼쪽 정보 영역 + 오른쪽 추가 버튼
     trackDiv.innerHTML = `
-      <h3>${track.title}</h3>
-      <p>${track.description}</p>
-      <p>🏷️ ${track.tags.join(', ')}</p>
+      <div class="track-info">
+        <h3>${track.title}</h3>
+        <p>${track.description}</p>
+        <p>🏷️ ${track.tags.join(', ')}</p>
+      </div>
+      <button class="add-queue-btn">➕</button>
     `;
     
-    trackDiv.onclick = () => {
+    // 1) 곡 정보 영역을 누르면 -> 즉시 그 곡을 재생
+    trackDiv.querySelector('.track-info').onclick = () => {
       const realIndex = tracks.findIndex(t => t.title === track.title);
       playTrack(realIndex);
     };
+
+    // 2) ➕ 버튼을 누르면 -> 재생 대기열에 추가만 함
+    trackDiv.querySelector('.add-queue-btn').onclick = () => {
+      const realIndex = tracks.findIndex(t => t.title === track.title);
+      customQueue.push(realIndex); // 대기열 맨 뒤에 넣기
+      alert(`'${track.title}' 곡이 재생 대기열에 추가되었습니다!`);
+    };
+
     trackListContainer.appendChild(trackDiv);
   });
 }
 
-// ⭐️ 2. 잠금 화면/제어 센터 설정 (백그라운드 깨우기 보정 추가)
+// ⭐️ 3. 코어 재생 엔진 (중복 코드 제거)
+function loadAndPlay(index) {
+  currentIndex = index;
+  const track = tracks[index];
+
+  keepAudioAlive();
+  currentAudio.src = `assets/music/${track.filename}`;
+  currentAudio.play().catch(e => console.error("재생 실패:", e));
+
+  currentTitle.textContent = track.title;
+  updateMediaSession(track);
+}
+
+// 리스트에서 곡을 누를 때 실행되는 함수 (히스토리 저장 포함)
+function playTrack(index) {
+  if (currentIndex !== -1) {
+    playHistory.push(currentIndex); // 지금 듣고 있는 곡을 과거 기록에 저장
+  }
+  loadAndPlay(index);
+}
+
+// ⭐️ 4. 다음 곡 재생 로직 (대기열 우선)
+function playNext() {
+  if (tracks.length === 0) return;
+
+  if (currentIndex !== -1) {
+    playHistory.push(currentIndex); // 현재 곡을 기록에 저장
+  }
+
+  if (customQueue.length > 0) {
+    // 사용자가 추가해 둔 대기열이 있다면 거기서 꺼내서 재생
+    const nextIndex = customQueue.shift();
+    loadAndPlay(nextIndex);
+  } else {
+    // 대기열이 비어있으면 기본 목록의 다음 곡 재생 (끝이면 처음으로)
+    let nextIndex = currentIndex + 1;
+    if (nextIndex >= tracks.length) nextIndex = 0;
+    loadAndPlay(nextIndex);
+  }
+}
+
+// ⭐️ 5. 이전 곡 재생 로직 (기록 기반)
+function playPrev() {
+  if (tracks.length === 0) return;
+
+  if (playHistory.length > 0) {
+    // 최근에 들었던 곡이 있으면 그걸 꺼내서 재생
+    const prevIndex = playHistory.pop();
+    loadAndPlay(prevIndex);
+  } else {
+    // 기록이 없으면 기본 목록의 이전 곡 재생 (처음이면 맨 뒤로)
+    let prevIndex = currentIndex - 1;
+    if (prevIndex < 0) prevIndex = tracks.length - 1;
+    loadAndPlay(prevIndex);
+  }
+}
+
 function updateMediaSession(track) {
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -93,42 +166,27 @@ function updateMediaSession(track) {
 
     navigator.mediaSession.setActionHandler('play', async () => {
       keepAudioAlive();
-      const saveTime = currentAudio.currentTime; // 깨어나기 전 재생 시간 저장
+      const saveTime = currentAudio.currentTime;
       try {
         await currentAudio.play();
-        // 오디오 장치가 잠에서 깼을 때 시점을 강제 재설정하여 멈춤 현상 방지
         currentAudio.currentTime = saveTime;
       } catch (error) {
-        console.warn("재생 실패, 소스 재로드:", error);
         currentAudio.load();
         currentAudio.currentTime = saveTime;
         currentAudio.play();
       }
     });
 
-    navigator.mediaSession.setActionHandler('pause', () => {
-      currentAudio.pause();
-    });
+    navigator.mediaSession.setActionHandler('pause', () => currentAudio.pause());
+    
+    // ⭐️ 잠금화면의 이전/다음 버튼과 연결
+    navigator.mediaSession.setActionHandler('previoustrack', playPrev);
+    navigator.mediaSession.setActionHandler('nexttrack', playNext);
   }
 }
 
-// 음악 재생 함수
-function playTrack(index) {
-  currentIndex = index;
-  const track = tracks[index];
-
-  keepAudioAlive(); // 첫 재생 시 무음 세션 깨우기
-  currentAudio.src = `assets/music/${track.filename}`;
-  currentAudio.play().catch(e => console.error("재생 실패:", e));
-
-  currentTitle.textContent = track.title;
-  updateMediaSession(track);
-}
-
-// 재생 / 일시정지 토글 함수
 function togglePlay() {
   if (currentIndex === -1) return;
-
   if (currentAudio.paused) {
     keepAudioAlive();
     currentAudio.play().catch(e => console.error(e));
@@ -149,8 +207,9 @@ searchInput.addEventListener('input', (e) => {
   renderTracks(filteredTracks);
 });
 
-// 플레이 버튼에 클릭 이벤트 달기
+// 앱 하단 바 버튼들 클릭 이벤트 연결
 playBtn.onclick = togglePlay;
+prevBtn.onclick = playPrev;
+nextBtn.onclick = playNext;
 
-// 앱이 시작되면 데이터 불러오기
 loadTracks();
