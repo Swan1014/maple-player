@@ -121,39 +121,49 @@ function playTrack(index) {
   loadAndPlay(index);
 }
 
-// ⭐️ 4. 다음 곡 재생 로직 (대기열 우선)
+// ⭐️ 4. 다음 곡 재생 로직 (엄격한 사용자 대기열 방식으로 변경)
 function playNext() {
-  if (tracks.length === 0) return;
-
-  if (currentIndex !== -1) {
-    playHistory.push(currentIndex); // 현재 곡을 기록에 저장
-  }
-
+  // 대기열(customQueue)에 사용자가 추가해 둔 곡이 있는 경우
   if (customQueue.length > 0) {
-    // 사용자가 추가해 둔 대기열이 있다면 거기서 꺼내서 재생
-    const nextIndex = customQueue.shift();
+    if (currentIndex !== -1) {
+      playHistory.push(currentIndex); // 현재 듣던 곡을 과거 기록에 저장
+    }
+    const nextIndex = customQueue.shift(); // 대기열에서 첫 번째 곡을 꺼냄
     loadAndPlay(nextIndex);
-  } else {
-    // 대기열이 비어있으면 기본 목록의 다음 곡 재생 (끝이면 처음으로)
-    let nextIndex = currentIndex + 1;
-    if (nextIndex >= tracks.length) nextIndex = 0;
-    loadAndPlay(nextIndex);
+  } 
+  // 대기열이 비어있는 경우
+  else {
+    // 아무것도 재생 안 한 초기 상태면 무시
+    if (currentIndex === -1) return;
+    
+    // 대기열의 곡을 다 들었거나, 추가한 곡이 없으면 재생을 깔끔하게 멈춤 (제멋대로 넘어가는 것 방지)
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    playBtn.textContent = '▶️';
+    
+    // 아이폰 잠금화면 상태도 일시정지로 동기화
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
   }
 }
 
-// ⭐️ 5. 이전 곡 재생 로직 (기록 기반)
+// ⭐️ 5. 이전 곡 재생 로직 (기성 앱 디테일 추가)
 function playPrev() {
-  if (tracks.length === 0) return;
+  // 아무것도 재생 안 한 초기 상태면 무시
+  if (currentIndex === -1) return;
 
+  // 디테일: 노래가 3초 이상 재생된 상태라면, 이전 곡으로 가지 않고 현재 곡을 처음으로 되돌림
+  if (currentAudio.currentTime > 3) {
+    currentAudio.currentTime = 0;
+    return;
+  }
+
+  // 3초 미만이고, 과거에 들었던 곡(History)이 있으면 그걸 꺼내서 재생
   if (playHistory.length > 0) {
-    // 최근에 들었던 곡이 있으면 그걸 꺼내서 재생
     const prevIndex = playHistory.pop();
     loadAndPlay(prevIndex);
   } else {
-    // 기록이 없으면 기본 목록의 이전 곡 재생 (처음이면 맨 뒤로)
-    let prevIndex = currentIndex - 1;
-    if (prevIndex < 0) prevIndex = tracks.length - 1;
-    loadAndPlay(prevIndex);
+    // 과거 기록도 없으면 현재 곡을 처음부터 재생
+    currentAudio.currentTime = 0;
   }
 }
 
