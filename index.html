@@ -34,6 +34,19 @@
     </div>
   </main>
 
+<!-- ⭐️ 새로 추가할 화면 C: 플레이리스트 상세(곡 목록) 화면 -->
+  <main id="playlistDetailView" class="view-area">
+    <div class="playlist-detail-header">
+      <button id="backToPlaylistBtn">◀ 뒤로 가기</button>
+      <h2 id="detailTitle">플레이리스트 이름</h2>
+      <p id="detailCount">0곡</p>
+      <!-- ⭐️ 커다란 전체 재생 버튼 -->
+      <button id="playAllBtn">전체 재생 ▶️</button>
+    </div>
+    <!-- 이 플레이리스트에 들어있는 곡들이 뜰 공간 -->
+    <div id="detailTrackList"></div>
+  </main>
+
   <!-- 하단 바텀 시트 (기존과 동일) -->
   <div id="bottomSheet">
     <div id="playerBar">

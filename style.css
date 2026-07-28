@@ -68,6 +68,52 @@ header h1 {
   display: block;
 }
 
+/* --- 플레이리스트 상세 화면 디자인 --- */
+.playlist-detail-header {
+  padding: 20px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  text-align: center;
+  position: relative;
+}
+
+#backToPlaylistBtn {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #ff7f00;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#detailTitle {
+  margin: 10px 0 5px 0;
+  font-size: 20px;
+}
+
+#detailCount {
+  margin: 0 0 15px 0;
+  font-size: 12px;
+  color: #888;
+}
+
+/* ⭐️ 커다란 전체 재생 버튼 */
+#playAllBtn {
+  width: 80%;
+  padding: 12px;
+  background-color: #222;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
 /* 플레이리스트 화면 디자인 */
 .playlist-header {
   padding: 15px 20px;

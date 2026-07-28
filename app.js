@@ -1,5 +1,12 @@
 const trackListContainer = document.getElementById('trackList');
 const playlistView = document.getElementById('playlistView'); // ⭐️ 추가됨
+const playlistDetailView = document.getElementById('playlistDetailView');
+const detailTitle = document.getElementById('detailTitle');
+const detailCount = document.getElementById('detailCount');
+const detailTrackList = document.getElementById('detailTrackList');
+const backToPlaylistBtn = document.getElementById('backToPlaylistBtn');
+const playAllBtn = document.getElementById('playAllBtn');
+
 const tabAll = document.getElementById('tabAll'); // ⭐️ 추가됨
 const tabPlaylist = document.getElementById('tabPlaylist'); // ⭐️ 추가됨
 
@@ -44,6 +51,7 @@ tabAll.onclick = () => {
   tabPlaylist.classList.remove('active');
   trackListContainer.classList.add('active'); // 전체 곡 화면 보이기
   playlistView.classList.remove('active'); // 플레이리스트 화면 숨기기
+  playlistDetailView.classList.remove('active');
   searchInput.style.display = 'block'; // 검색창 켜기
 };
 
@@ -52,6 +60,7 @@ tabPlaylist.onclick = () => {
   tabAll.classList.remove('active');
   playlistView.classList.add('active'); // 플레이리스트 화면 보이기
   trackListContainer.classList.remove('active'); // 전체 곡 화면 숨기기
+  playlistDetailView.classList.remove('active');
   searchInput.style.display = 'none'; // 검색창 끄기
 };
 
@@ -527,7 +536,6 @@ function renderPlaylists() {
     const plDiv = document.createElement('div');
     plDiv.className = 'playlist-item';
 
-    // 화면 구조: 폴더 아이콘 + 이름/곡 수 + 삭제 버튼
     plDiv.innerHTML = `
       <div class="track-info" style="display:flex; align-items:center;">
         <span style="font-size:24px; margin-right:15px;">📁</span>
@@ -539,25 +547,90 @@ function renderPlaylists() {
       <button class="option-btn" style="color:red; font-size:14px;">삭제</button>
     `;
 
-    // 폴더를 클릭했을 때 (나중에 4단계에서 구현할 영역)
+    // ⭐️ 1. 폴더를 클릭하면 상세 화면으로 이동
     plDiv.querySelector('.track-info').onclick = () => {
-      alert(`'${playlist.name}' 안으로 들어가는 기능은 다음 단계에서 만들게요!`);
+      openPlaylistDetail(index);
     };
 
-    // 우측 삭제 버튼 클릭 시
     plDiv.querySelector('.option-btn').onclick = (e) => {
-      e.stopPropagation(); // 폴더 클릭 이벤트가 같이 실행되는 것 방지
+      e.stopPropagation();
       const confirmDelete = confirm(`'${playlist.name}' 플레이리스트를 정말 삭제할까요?`);
       if (confirmDelete) {
-        myPlaylists.splice(index, 1); // 배열에서 삭제
-        savePlaylists(); // 변경사항 저장
-        renderPlaylists(); // 화면 다시 그리기
+        myPlaylists.splice(index, 1); 
+        savePlaylists(); 
+        renderPlaylists(); 
       }
     };
 
     playlistContainer.appendChild(plDiv);
   });
 }
+
+// ⭐️ 2. 상세 화면 띄우기 함수 (새로 추가)
+function openPlaylistDetail(playlistIndex) {
+  const playlist = myPlaylists[playlistIndex];
+  
+  // 화면 전환
+  playlistView.classList.remove('active');
+  playlistDetailView.classList.add('active');
+
+  // 헤더 정보 채우기
+  detailTitle.textContent = playlist.name;
+  detailCount.textContent = `${playlist.tracks.length}곡`;
+
+  // 곡 목록 그리기
+  detailTrackList.innerHTML = '';
+  if (playlist.tracks.length === 0) {
+    detailTrackList.innerHTML = '<p style="text-align:center; padding:30px; color:#888;">이 플레이리스트는 비어있습니다.</p>';
+  } else {
+    playlist.tracks.forEach((trackIndex) => {
+      const track = tracks[trackIndex];
+      const trackDiv = document.createElement('div');
+      trackDiv.className = 'track-item';
+      trackDiv.innerHTML = `
+        <div class="track-info">
+          <h3>${track.title}</h3>
+          <p>${track.description}</p>
+        </div>
+        <button class="option-btn">⋮</button>
+      `;
+
+      // ⭐️ 3. 플레이리스트 안에서 개별 곡을 눌렀을 때
+      // 네 요구사항: 기존 대기열 싹 날리고 플리 전체 복사 후, 누른 곡부터 재생!
+      trackDiv.querySelector('.track-info').onclick = () => {
+        customQueue = [...playlist.tracks]; // 배열 복사
+        queueCursor = playlist.tracks.indexOf(trackIndex); // 누른 곡의 위치 찾기
+        loadAndPlay(customQueue[queueCursor]);
+        renderQueue(); // 바텀 시트 대기열 갱신
+      };
+
+      // 개별 곡 옵션 메뉴 (삭제/태그 편집 등 띄우기)
+      trackDiv.querySelector('.option-btn').onclick = () => {
+        openOptionMenu(trackIndex);
+      };
+
+      detailTrackList.appendChild(trackDiv);
+    });
+  }
+
+  // ⭐️ 4. 커다란 [전체 재생] 버튼 로직
+  playAllBtn.onclick = () => {
+    if (playlist.tracks.length === 0) {
+      alert("재생할 곡이 없습니다.");
+      return;
+    }
+    customQueue = [...playlist.tracks]; // 대기열을 플리 곡들로 덮어씌움
+    queueCursor = 0; // 1번 곡부터 시작
+    loadAndPlay(customQueue[queueCursor]);
+    renderQueue();
+  };
+}
+
+// 뒤로 가기 버튼 로직
+backToPlaylistBtn.onclick = () => {
+  playlistDetailView.classList.remove('active');
+  playlistView.classList.add('active');
+};
 
 // 앱 시작 시 플레이리스트 데이터도 같이 불러오기
 loadPlaylists();
