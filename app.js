@@ -426,4 +426,93 @@ playBtn.onclick = togglePlay;
 prevBtn.onclick = playPrev;
 nextBtn.onclick = playNext;
 
+// 플레이리스트를 저장할 변수 (배열 안에 객체가 들어가는 구조)
+let myPlaylists = [];
+
+// 요소 가져오기
+const playlistContainer = document.getElementById('playlistContainer');
+const createNewPlaylistBtn = document.getElementById('createNewPlaylistBtn');
+
+// 1. LocalStorage에서 플레이리스트 데이터 불러오기
+function loadPlaylists() {
+  const savedData = localStorage.getItem('maple_playlists');
+  if (savedData) {
+    myPlaylists = JSON.parse(savedData);
+  } else {
+    myPlaylists = [];
+  }
+  renderPlaylists();
+}
+
+// 2. LocalStorage에 데이터 저장하기 (바뀔 때마다 실행)
+function savePlaylists() {
+  localStorage.setItem('maple_playlists', JSON.stringify(myPlaylists));
+}
+
+// 3. 새 플레이리스트 만들기 버튼 클릭 시
+createNewPlaylistBtn.onclick = () => {
+  const title = prompt("새 플레이리스트의 이름을 입력하세요:");
+  
+  if (title === null || title.trim() === "") return; // 취소하거나 빈 칸이면 무시
+
+  // 새로운 폴더 객체 생성 (곡은 아직 비어있음)
+  const newPlaylist = {
+    id: Date.now(), // 고유 번호 (생성 시간 기준)
+    name: title.trim(),
+    tracks: [] // 곡의 Index 번호를 저장할 배열
+  };
+
+  myPlaylists.push(newPlaylist);
+  savePlaylists(); // 저장
+  renderPlaylists(); // 화면 다시 그리기
+};
+
+// 4. 플레이리스트 목록 화면에 그리기
+function renderPlaylists() {
+  playlistContainer.innerHTML = '';
+
+  if (myPlaylists.length === 0) {
+    playlistContainer.innerHTML = '<p style="text-align:center; color:#888; padding:30px;">만들어진 플레이리스트가 없습니다.<br>위 버튼을 눌러 새 플레이리스트를 만들어보세요!</p>';
+    return;
+  }
+
+  myPlaylists.forEach((playlist, index) => {
+    const plDiv = document.createElement('div');
+    plDiv.className = 'playlist-item';
+
+    // 화면 구조: 폴더 아이콘 + 이름/곡 수 + 삭제 버튼
+    plDiv.innerHTML = `
+      <div class="track-info" style="display:flex; align-items:center;">
+        <span style="font-size:24px; margin-right:15px;">📁</span>
+        <div>
+          <h3>${playlist.name}</h3>
+          <p>${playlist.tracks.length}곡</p>
+        </div>
+      </div>
+      <button class="option-btn" style="color:red; font-size:14px;">삭제</button>
+    `;
+
+    // 폴더를 클릭했을 때 (나중에 4단계에서 구현할 영역)
+    plDiv.querySelector('.track-info').onclick = () => {
+      alert(`'${playlist.name}' 안으로 들어가는 기능은 다음 단계에서 만들게요!`);
+    };
+
+    // 우측 삭제 버튼 클릭 시
+    plDiv.querySelector('.option-btn').onclick = (e) => {
+      e.stopPropagation(); // 폴더 클릭 이벤트가 같이 실행되는 것 방지
+      const confirmDelete = confirm(`'${playlist.name}' 플레이리스트를 정말 삭제할까요?`);
+      if (confirmDelete) {
+        myPlaylists.splice(index, 1); // 배열에서 삭제
+        savePlaylists(); // 변경사항 저장
+        renderPlaylists(); // 화면 다시 그리기
+      }
+    };
+
+    playlistContainer.appendChild(plDiv);
+  });
+}
+
+// 앱 시작 시 플레이리스트 데이터도 같이 불러오기
+loadPlaylists();
+
 loadTracks();
