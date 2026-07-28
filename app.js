@@ -17,7 +17,7 @@ const optionDesc = document.getElementById('optionDesc');
 const optionCloseBtn = document.getElementById('optionCloseBtn');
 const optPlayNext = document.getElementById('optPlayNext');
 const optPlayLast = document.getElementById('optPlayLast');
-const optRemoveQueue = document.getElementById('optRemoveQueue'); // ⭐️ 추가됨
+const optRemoveQueue = document.getElementById('optRemoveQueue'); 
 const optAddPlaylist = document.getElementById('optAddPlaylist');
 const optEditTag = document.getElementById('optEditTag');
 
@@ -27,7 +27,7 @@ let queueCursor = -1;
 let audioCtx = null;
 
 let selectedTrackIndex = -1;
-let selectedQueuePos = -1; // ⭐️ 대기열 안에서 선택한 곡인지 구분하기 위한 변수
+let selectedQueuePos = -1; 
 
 function keepAudioAlive() {
   if (!audioCtx) {
@@ -61,7 +61,6 @@ nowPlayingArea.onclick = () => {
   bottomSheet.classList.toggle('expanded');
 };
 
-// ⭐️ 옵션 메뉴 열기 (대기열에서 열었는지, 메인에서 열었는지 구분)
 function openOptionMenu(trackIndex, queuePos = -1) {
   selectedTrackIndex = trackIndex;
   selectedQueuePos = queuePos;
@@ -70,7 +69,6 @@ function openOptionMenu(trackIndex, queuePos = -1) {
   optionTitle.textContent = track.title;
   optionDesc.textContent = track.description;
   
-  // ⭐️ 메인 리스트에서 열었으면 '대기열에서 삭제' 버튼 숨기기
   if (queuePos === -1) {
     optRemoveQueue.style.display = 'none';
   } else {
@@ -117,22 +115,18 @@ optPlayLast.onclick = () => {
   closeOptionMenu();
 };
 
-// ⭐️ [옵션] 대기열에서 삭제 로직
 optRemoveQueue.onclick = () => {
   if (selectedQueuePos !== -1) {
-    customQueue.splice(selectedQueuePos, 1); // 배열에서 해당 곡 삭제
+    customQueue.splice(selectedQueuePos, 1); 
 
     if (selectedQueuePos < queueCursor) {
-      // 내 앞의 곡이 삭제되면 내 커서를 한 칸 당겨옴
       queueCursor--;
     } else if (selectedQueuePos === queueCursor) {
-      // ⭐️ 지금 재생 중인 곡을 삭제해버렸을 때의 예외 처리
       if (customQueue.length === 0) {
         pausePlayback();
         queueCursor = -1;
         currentTitle.textContent = "재생 중인 곡이 없습니다";
       } else {
-        // 다음 곡이 이어서 재생되도록 함 (마지막 곡이었다면 정지)
         if (queueCursor >= customQueue.length) {
           pausePlayback();
           queueCursor = -1;
@@ -157,7 +151,6 @@ optEditTag.onclick = () => {
   closeOptionMenu();
 };
 
-// ⭐️ 드래그를 위한 임시 변수
 let draggingElement = null;
 
 function renderQueue() {
@@ -172,11 +165,10 @@ function renderQueue() {
     const track = tracks[trackIndex];
     const qDiv = document.createElement('div');
     qDiv.className = 'queue-item';
-    qDiv.dataset.pos = queuePosition; // 원래 위치를 기억해두기
+    qDiv.dataset.pos = queuePosition; 
     
     if (queuePosition === queueCursor) qDiv.classList.add('active');
 
-    // ⭐️ 우측 끝에 드래그 손잡이(≡) 추가
     qDiv.innerHTML = `
       <div class="queue-info">
         <h4>${track.title}</h4>
@@ -189,35 +181,48 @@ function renderQueue() {
     qDiv.querySelector('.queue-info').onclick = () => jumpToQueueTrack(queuePosition);
     qDiv.querySelector('.option-btn').onclick = () => openOptionMenu(trackIndex, queuePosition);
 
-    // ⭐️ 아이폰 터치 드래그 기능 구현 (Vanilla JS)
     const dragHandle = qDiv.querySelector('.drag-handle');
     
-    dragHandle.addEventListener('touchstart', (e) => {
-      e.preventDefault(); // 화면 스크롤 방지
+    // ⭐️ PC(마우스)와 모바일(터치) 모두 지원하는 드래그 시작 로직
+    const dragStart = (e) => {
+      e.preventDefault(); // 텍스트 드래그 선택 방지
       draggingElement = qDiv;
       draggingElement.classList.add('dragging');
-    }, { passive: false });
 
-    dragHandle.addEventListener('touchmove', (e) => {
-      e.preventDefault();
+      // PC 마우스용 전역 이벤트 등록 (마우스가 손잡이를 벗어나도 드래그 유지)
+      if (e.type === 'mousedown') {
+        document.addEventListener('mousemove', dragMove, { passive: false });
+        document.addEventListener('mouseup', dragEnd);
+      }
+    };
+
+    // ⭐️ 드래그 중 로직
+    const dragMove = (e) => {
       if (!draggingElement) return;
+      e.preventDefault();
 
-      const touchY = e.touches[0].clientY;
+      // 모바일은 touches[0]에서, PC는 직접 clientY 추출
+      const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
       const siblings = [...queueList.querySelectorAll('.queue-item:not(.dragging)')];
       
-      // 손가락 위치에 따라 어느 요소 앞에 끼워넣을지 계산
       let nextSibling = siblings.find(sibling => {
         const rect = sibling.getBoundingClientRect();
-        return touchY < rect.top + rect.height / 2;
+        return clientY < rect.top + rect.height / 2;
       });
       queueList.insertBefore(draggingElement, nextSibling);
-    }, { passive: false });
+    };
 
-    dragHandle.addEventListener('touchend', () => {
+    // ⭐️ 드래그 끝 로직
+    const dragEnd = (e) => {
       if (!draggingElement) return;
       draggingElement.classList.remove('dragging');
 
-      // 요소들의 바뀐 순서를 읽어서 customQueue 배열과 커서 위치 재조립
+      // PC 마우스용 전역 이벤트 해제
+      if (e.type === 'mouseup') {
+        document.removeEventListener('mousemove', dragMove);
+        document.removeEventListener('mouseup', dragEnd);
+      }
+
       const newQueue = [];
       let newCursor = -1;
       
@@ -226,7 +231,6 @@ function renderQueue() {
         const oldPos = parseInt(item.dataset.pos);
         newQueue.push(customQueue[oldPos]);
         
-        // 재생 중이던 곡이 어디로 이동했는지 추적
         if (oldPos === queueCursor) {
           newCursor = index;
         }
@@ -235,8 +239,16 @@ function renderQueue() {
       customQueue = newQueue;
       queueCursor = newCursor;
       draggingElement = null;
-      renderQueue(); // UI 갱신
-    });
+      renderQueue(); 
+    };
+
+    // 모바일 터치 이벤트 리스너
+    dragHandle.addEventListener('touchstart', dragStart, { passive: false });
+    dragHandle.addEventListener('touchmove', dragMove, { passive: false });
+    dragHandle.addEventListener('touchend', dragEnd);
+
+    // PC 마우스 이벤트 리스너
+    dragHandle.addEventListener('mousedown', dragStart);
 
     queueList.appendChild(qDiv);
   });
@@ -294,7 +306,6 @@ function renderTracks(trackArray) {
       renderQueue(); 
     };
 
-    // 메인 리스트에서 열 때는 queuePos를 안 보냄 (-1)
     trackDiv.querySelector('.option-btn').onclick = () => {
       const realIndex = tracks.findIndex(t => t.title === track.title);
       openOptionMenu(realIndex);
