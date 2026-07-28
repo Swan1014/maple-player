@@ -73,6 +73,23 @@
     <button id="optionCloseBtn">닫기</button>
   </div>
 
+<!-- ⭐️ 플레이리스트 선택 팝업 -->
+  <div id="playlistSelectOverlay" class="hidden"></div>
+  <div id="playlistSelectMenu" class="hidden">
+    <div class="option-header">
+      <h3>어느 플레이리스트에 추가할까요?</h3>
+    </div>
+    <ul class="option-list" id="playlistSelectList">
+      <!-- JS가 여기에 내 폴더 목록을 뿌려줌 -->
+    </ul>
+    <button id="playlistSelectCloseBtn">취소</button>
+  </div>
+  
+  <audio id="mainAudio" preload="metadata"></audio>
+  <script src="app.js"></script>
+</body>
+</html>
+
   <audio id="mainAudio" preload="metadata"></audio>
   <script src="app.js"></script>
 </body>

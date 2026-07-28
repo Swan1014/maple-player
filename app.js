@@ -25,6 +25,19 @@ const optRemoveQueue = document.getElementById('optRemoveQueue');
 const optAddPlaylist = document.getElementById('optAddPlaylist');
 const optEditTag = document.getElementById('optEditTag');
 
+// ⭐️ 방금 추가한 플레이리스트 선택 팝업 요소들 가져오기
+const playlistSelectOverlay = document.getElementById('playlistSelectOverlay');
+const playlistSelectMenu = document.getElementById('playlistSelectMenu');
+const playlistSelectList = document.getElementById('playlistSelectList');
+const playlistSelectCloseBtn = document.getElementById('playlistSelectCloseBtn');
+
+function closePlaylistSelectMenu() {
+  playlistSelectOverlay.classList.add('hidden');
+  playlistSelectMenu.classList.add('hidden');
+}
+playlistSelectOverlay.onclick = closePlaylistSelectMenu;
+playlistSelectCloseBtn.onclick = closePlaylistSelectMenu;
+
 // ⭐️ 탭 전환 기능 로직 추가
 tabAll.onclick = () => {
   tabAll.classList.add('active');
@@ -163,8 +176,42 @@ optRemoveQueue.onclick = () => {
 };
 
 optAddPlaylist.onclick = () => {
-  alert("플레이리스트에 추가 기능은 곧 업데이트됩니다!");
+  if (selectedTrackIndex === -1) return;
+
+  // 1. 기존 옵션 메뉴 닫기
   closeOptionMenu();
+
+  // 2. 만들어둔 플레이리스트가 없으면 알림 띄우기
+  if (myPlaylists.length === 0) {
+    alert("만들어진 플레이리스트가 없습니다. [내 플레이리스트] 탭에서 먼저 만들어주세요!");
+    return;
+  }
+
+  // 3. 내 플레이리스트 폴더 목록을 팝업에 그리기
+  playlistSelectList.innerHTML = '';
+  myPlaylists.forEach((playlist, plIndex) => {
+    const li = document.createElement('li');
+    li.textContent = `📁 ${playlist.name} (${playlist.tracks.length}곡)`;
+    
+    // 폴더를 클릭하면 그 안에 곡 집어넣기
+    li.onclick = () => {
+      // 이미 들어있는 곡인지 중복 체크
+      if (playlist.tracks.includes(selectedTrackIndex)) {
+        alert("이미 이 플레이리스트에 들어있는 곡입니다.");
+      } else {
+        playlist.tracks.push(selectedTrackIndex); // 곡 번호 추가
+        savePlaylists(); // LocalStorage에 저장
+        renderPlaylists(); // 폴더 곡 수 업데이트
+        alert(`'${playlist.name}'에 곡이 추가되었습니다!`);
+      }
+      closePlaylistSelectMenu();
+    };
+    playlistSelectList.appendChild(li);
+  });
+
+  // 4. 팝업 띄우기
+  playlistSelectOverlay.classList.remove('hidden');
+  playlistSelectMenu.classList.remove('hidden');
 };
 
 optEditTag.onclick = () => {
