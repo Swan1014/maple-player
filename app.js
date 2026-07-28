@@ -14,7 +14,8 @@ const currentTitle = document.getElementById('currentTitle');
 const playBtn = document.getElementById('playBtn');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
-const shuffleBtn = document.getElementById('shuffleBtn'); // ⭐️ 추가됨
+const shuffleBtn = document.getElementById('shuffleBtn');
+const repeatBtn = document.getElementById('repeatBtn'); // ⭐️ 추가됨
 const searchInput = document.getElementById('searchInput');
 const currentAudio = document.getElementById('mainAudio');
 const bottomSheet = document.getElementById('bottomSheet');
@@ -38,7 +39,6 @@ const playlistSelectMenu = document.getElementById('playlistSelectMenu');
 const playlistSelectList = document.getElementById('playlistSelectList');
 const playlistSelectCloseBtn = document.getElementById('playlistSelectCloseBtn');
 
-// 상태 변수들
 let tracks = [];
 let customQueue = []; 
 let queueCursor = -1; 
@@ -48,9 +48,11 @@ let selectedTrackIndex = -1;
 let selectedQueuePos = -1; 
 let myPlaylists = [];
 
-// ⭐️ 셔플 관리를 위한 새로운 변수
 let isShuffle = false;
-let originalQueue = []; // 셔플을 끄면 돌아갈 '원래 대기열' 백업 공간
+let originalQueue = []; 
+
+// ⭐️ 반복 재생 관리를 위한 새로운 변수 (0: 꺼짐, 1: 전체 반복, 2: 한 곡 반복)
+let repeatMode = 0;
 
 // 탭 전환
 tabAll.onclick = () => {
@@ -71,7 +73,6 @@ tabPlaylist.onclick = () => {
   searchInput.style.display = 'none'; 
 };
 
-// ⭐️ 배열을 랜덤하게 섞는 함수 (Fisher-Yates 알고리즘)
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -79,43 +80,44 @@ function shuffleArray(array) {
   }
 }
 
-// ⭐️ 셔플 버튼 토글 로직 (유튜브 뮤직 스타일)
 shuffleBtn.onclick = () => {
-  if (customQueue.length === 0) return; // 대기열 비어있으면 무시
+  if (customQueue.length === 0) return; 
 
   isShuffle = !isShuffle;
   shuffleBtn.classList.toggle('active', isShuffle);
 
   if (isShuffle) {
-    // 셔플 켜기: 현재 대기열 백업
     originalQueue = [...customQueue];
-
-    // 지금 듣고 있는 곡 번호 저장
     const currentTrackId = customQueue[queueCursor];
-
-    // 현재 듣고 있는 곡을 제외한 나머지 곡들만 분리
     const remainingTracks = customQueue.filter((_, index) => index !== queueCursor);
-
-    // 나머지 곡들 마구 섞기
     shuffleArray(remainingTracks);
-
-    // 새 대기열 = [현재 듣고 있는 곡] + [섞인 나머지 곡들]
     customQueue = [currentTrackId, ...remainingTracks];
-    queueCursor = 0; // 현재 곡이 맨 앞으로 왔으므로 커서는 0
+    queueCursor = 0; 
   } else {
-    // 셔플 끄기: 원본 대기열로 복구
     const currentTrackId = customQueue[queueCursor];
-    customQueue = [...originalQueue]; // 원본으로 덮어쓰기
-
-    // 원본 대기열에서 지금 듣고 있는 곡이 원래 몇 번이었는지 찾아내기
+    customQueue = [...originalQueue]; 
     queueCursor = customQueue.findIndex(id => id === currentTrackId);
-    originalQueue = []; // 백업 초기화
+    originalQueue = []; 
   }
-  
-  renderQueue(); // 섞인(또는 복구된) 대기열 화면 새로고침
+  renderQueue(); 
 };
 
-// --- 이 아래부터는 기존 기능 유지 (오디오, 재생, 팝업, 렌더링 등) ---
+// ⭐️ 반복 버튼 클릭 이벤트 (상태 순환: 0 -> 1 -> 2 -> 0)
+repeatBtn.onclick = () => {
+  repeatMode = (repeatMode + 1) % 3;
+  
+  if (repeatMode === 0) {
+    repeatBtn.textContent = '🔁';
+    repeatBtn.classList.remove('active'); // 꺼짐 (회색)
+  } else if (repeatMode === 1) {
+    repeatBtn.textContent = '🔁';
+    repeatBtn.classList.add('active');    // 전체 반복 (주황색)
+  } else if (repeatMode === 2) {
+    repeatBtn.textContent = '🔂';        // 한 곡 반복 아이콘
+    repeatBtn.classList.add('active');    // 주황색
+  }
+};
+
 function keepAudioAlive() {
   if (!audioCtx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -142,11 +144,20 @@ currentAudio.addEventListener('pause', () => {
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 });
 
-currentAudio.addEventListener('ended', playNext);
+// ⭐️ 곡이 자연스럽게 끝났을 때의 처리 (한 곡 반복 로직 추가)
+currentAudio.addEventListener('ended', () => {
+  if (repeatMode === 2 && customQueue.length > 0) {
+    // 🔂 한 곡 반복 상태라면? 다음 곡으로 안 가고 현재 곡을 처음부터 다시 틈!
+    currentAudio.currentTime = 0;
+    currentAudio.play().catch(e => console.error(e));
+  } else {
+    // 그 외엔 다음 곡 재생
+    playNext();
+  }
+});
 
 nowPlayingArea.onclick = () => { bottomSheet.classList.toggle('expanded'); };
 
-// 옵션 메뉴 처리
 function openOptionMenu(trackIndex, queuePos = -1) {
   selectedTrackIndex = trackIndex;
   selectedQueuePos = queuePos;
@@ -182,10 +193,7 @@ optPlayNext.onclick = () => {
     } else {
       customQueue.splice(queueCursor + 1, 0, selectedTrackIndex);
     }
-    // ⭐️ 셔플 중일 땐 원본 백업 배열에도 살짝 끼워넣어줌
-    if (isShuffle && originalQueue.length > 0) {
-       originalQueue.push(selectedTrackIndex); 
-    }
+    if (isShuffle && originalQueue.length > 0) originalQueue.push(selectedTrackIndex); 
     renderQueue();
   }
   closeOptionMenu();
@@ -200,10 +208,7 @@ optPlayLast.onclick = () => {
     } else {
       customQueue.push(selectedTrackIndex);
     }
-    // ⭐️ 셔플 중일 땐 원본 백업 배열 맨 끝에 넣음
-    if (isShuffle && originalQueue.length > 0) {
-       originalQueue.push(selectedTrackIndex); 
-    }
+    if (isShuffle && originalQueue.length > 0) originalQueue.push(selectedTrackIndex); 
     renderQueue();
   }
   closeOptionMenu();
@@ -213,13 +218,10 @@ optRemoveQueue.onclick = () => {
   if (selectedQueuePos !== -1) {
     const removingTrackId = customQueue[selectedQueuePos];
     customQueue.splice(selectedQueuePos, 1); 
-
-    // ⭐️ 셔플 중일 땐 원본 백업 배열에서도 찾아서 지움
     if (isShuffle && originalQueue.length > 0) {
       const orgIdx = originalQueue.indexOf(removingTrackId);
       if (orgIdx !== -1) originalQueue.splice(orgIdx, 1);
     }
-
     if (selectedQueuePos < queueCursor) {
       queueCursor--;
     } else if (selectedQueuePos === queueCursor) {
@@ -301,7 +303,6 @@ function renderQueue() {
     qDiv.querySelector('.option-btn').onclick = () => openOptionMenu(trackIndex, queuePosition);
 
     const dragHandle = qDiv.querySelector('.drag-handle');
-    
     const dragStart = (e) => {
       e.preventDefault();
       draggingElement = qDiv;
@@ -311,7 +312,6 @@ function renderQueue() {
         document.addEventListener('mouseup', dragEnd);
       }
     };
-
     const dragMove = (e) => {
       if (!draggingElement) return;
       e.preventDefault();
@@ -323,7 +323,6 @@ function renderQueue() {
       });
       queueList.insertBefore(draggingElement, nextSibling);
     };
-
     const dragEnd = (e) => {
       if (!draggingElement) return;
       draggingElement.classList.remove('dragging');
@@ -331,7 +330,6 @@ function renderQueue() {
         document.removeEventListener('mousemove', dragMove);
         document.removeEventListener('mouseup', dragEnd);
       }
-
       const newQueue = [];
       let newCursor = -1;
       const items = queueList.querySelectorAll('.queue-item');
@@ -340,13 +338,8 @@ function renderQueue() {
         newQueue.push(customQueue[oldPos]);
         if (oldPos === queueCursor) newCursor = index;
       });
-
       customQueue = newQueue;
       queueCursor = newCursor;
-      
-      // ⭐️ 셔플 중에 직접 드래그해서 위치를 바꿨다면?
-      // 원본 백업(originalQueue)은 유지하되, 이 섞인 상태를 유저의 '의도'로 존중
-      
       draggingElement = null;
       renderQueue(); 
     };
@@ -393,7 +386,6 @@ function renderTracks(trackArray) {
     trackListContainer.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">검색 결과가 없습니다 😢</p>';
     return;
   }
-
   trackArray.forEach((track) => {
     const trackDiv = document.createElement('div');
     trackDiv.className = 'track-item';
@@ -405,25 +397,16 @@ function renderTracks(trackArray) {
       </div>
       <button class="option-btn">⋮</button>
     `;
-    
     trackDiv.querySelector('.track-info').onclick = () => {
-      const realIndex = tracks.findIndex(t => t.title === track.title);
-      // ⭐️ 메인에서 누르면 셔플 모드 강제 해제 (기성 앱 국룰)
       isShuffle = false;
       shuffleBtn.classList.remove('active');
       originalQueue = [];
-
-      customQueue = [realIndex]; 
+      customQueue = [tracks.findIndex(t => t.title === track.title)]; 
       queueCursor = 0; 
       loadAndPlay(customQueue[queueCursor]);
       renderQueue(); 
     };
-
-    trackDiv.querySelector('.option-btn').onclick = () => {
-      const realIndex = tracks.findIndex(t => t.title === track.title);
-      openOptionMenu(realIndex);
-    };
-
+    trackDiv.querySelector('.option-btn').onclick = () => openOptionMenu(tracks.findIndex(t => t.title === track.title));
     trackListContainer.appendChild(trackDiv);
   });
 }
@@ -437,16 +420,29 @@ function loadAndPlay(index) {
   updateMediaSession(track);
 }
 
+// ⭐️ 다음 곡 로직 수정 (전체 반복 적용)
 function playNext() {
-  if (customQueue.length > 0 && queueCursor < customQueue.length - 1) {
-    queueCursor++;
-    loadAndPlay(customQueue[queueCursor]);
-    renderQueue();
+  if (customQueue.length > 0) {
+    if (queueCursor < customQueue.length - 1) {
+      queueCursor++;
+      loadAndPlay(customQueue[queueCursor]);
+      renderQueue();
+    } else {
+      // 🔁 전체 반복 상태면 1번 곡으로 점프
+      if (repeatMode === 1) {
+        queueCursor = 0;
+        loadAndPlay(customQueue[queueCursor]);
+        renderQueue();
+      } else {
+        pausePlayback();
+      }
+    }
   } else {
     pausePlayback();
   }
 }
 
+// ⭐️ 이전 곡 로직 수정 (전체 반복 적용)
 function playPrev() {
   if (customQueue.length === 0) return;
   if (currentAudio.currentTime > 3) {
@@ -458,7 +454,14 @@ function playPrev() {
     loadAndPlay(customQueue[queueCursor]);
     renderQueue();
   } else {
-    currentAudio.currentTime = 0;
+    // 🔁 전체 반복 상태면 마지막 곡으로 점프
+    if (repeatMode === 1) {
+      queueCursor = customQueue.length - 1;
+      loadAndPlay(customQueue[queueCursor]);
+      renderQueue();
+    } else {
+      currentAudio.currentTime = 0;
+    }
   }
 }
 
@@ -485,6 +488,7 @@ function updateMediaSession(track) {
       }
     });
     navigator.mediaSession.setActionHandler('pause', () => currentAudio.pause());
+    // 미디어 세션에서 이전/다음곡을 수동으로 누를 때도 정상 동작!
     navigator.mediaSession.setActionHandler('previoustrack', playPrev);
     navigator.mediaSession.setActionHandler('nexttrack', playNext);
   }
@@ -514,7 +518,6 @@ playBtn.onclick = togglePlay;
 prevBtn.onclick = playPrev;
 nextBtn.onclick = playNext;
 
-// 플레이리스트 LocalStorage 기능
 const playlistContainer = document.getElementById('playlistContainer');
 const createNewPlaylistBtn = document.getElementById('createNewPlaylistBtn');
 
@@ -591,11 +594,9 @@ function openPlaylistDetail(playlistIndex) {
         <button class="option-btn">⋮</button>
       `;
       trackDiv.querySelector('.track-info').onclick = () => {
-        // ⭐️ 플리에서 누를 때도 셔플 강제 해제
         isShuffle = false;
         shuffleBtn.classList.remove('active');
         originalQueue = [];
-
         customQueue = [...playlist.tracks]; 
         queueCursor = playlist.tracks.indexOf(trackIndex); 
         loadAndPlay(customQueue[queueCursor]);
@@ -608,12 +609,9 @@ function openPlaylistDetail(playlistIndex) {
 
   playAllBtn.onclick = () => {
     if (playlist.tracks.length === 0) { alert("재생할 곡이 없습니다."); return; }
-    
-    // ⭐️ 전체 재생 시에도 셔플 해제
     isShuffle = false;
     shuffleBtn.classList.remove('active');
     originalQueue = [];
-
     customQueue = [...playlist.tracks]; 
     queueCursor = 0; 
     loadAndPlay(customQueue[queueCursor]);
