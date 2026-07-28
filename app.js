@@ -11,14 +11,8 @@ const queueList = document.getElementById('queueList');
 const clearQueueBtn = document.getElementById('clearQueueBtn');
 
 let tracks = [];
-let currentIndex = -1;
-let customQueue = []; 
-
-// ⭐️ 대기열 커서 관리를 위한 새로운 변수들
-let queueCursor = -1; 
-let isPlayingQueue = false; 
-
-let playHistory = []; 
+let customQueue = []; // 이제 앱의 모든 재생은 무조건 이 대기열을 거침
+let queueCursor = -1; // 현재 대기열의 몇 번째 곡을 듣고 있는지 추적
 let audioCtx = null;
 
 function keepAudioAlive() {
@@ -53,7 +47,6 @@ nowPlayingArea.onclick = () => {
   bottomSheet.classList.toggle('expanded');
 };
 
-// ⭐️ 대기열 화면 그리기 (하이라이트 기능 추가)
 function renderQueue() {
   queueList.innerHTML = '';
 
@@ -67,8 +60,7 @@ function renderQueue() {
     const qDiv = document.createElement('div');
     qDiv.className = 'queue-item';
     
-    // 현재 대기열에서 재생 중인 곡이면 active 클래스 붙이기
-    if (isPlayingQueue && queuePosition === queueCursor) {
+    if (queuePosition === queueCursor) {
       qDiv.classList.add('active');
     }
 
@@ -80,12 +72,10 @@ function renderQueue() {
       <button class="add-queue-btn">➕</button>
     `;
 
-    // 대기열의 곡을 누르면 커서를 그 위치로 이동 (삭제 안 함)
     qDiv.querySelector('.queue-info').onclick = () => {
       jumpToQueueTrack(queuePosition);
     };
 
-    // 대기열 안의 ➕ 버튼 (알림창 제거)
     qDiv.querySelector('.add-queue-btn').onclick = () => {
       customQueue.push(trackIndex);
       renderQueue(); 
@@ -95,24 +85,20 @@ function renderQueue() {
   });
 }
 
+// 대기열 비우기 (음악도 함께 정지되도록 깔끔하게 처리)
 clearQueueBtn.onclick = () => {
   customQueue = [];
-  isPlayingQueue = false;
   queueCursor = -1;
+  pausePlayback();
+  currentTitle.textContent = "재생 중인 곡이 없습니다";
   renderQueue();
 };
 
-// ⭐️ 대기열 건너뛰기 함수 (커서만 이동)
 function jumpToQueueTrack(queuePosition) {
-  if (currentIndex !== -1 && !isPlayingQueue) playHistory.push(currentIndex);
-  
-  isPlayingQueue = true;
-  queueCursor = queuePosition; // 커서를 클릭한 곡의 위치로 변경
-  
+  queueCursor = queuePosition;
   bottomSheet.classList.remove('expanded');
-  
   loadAndPlay(customQueue[queueCursor]);
-  renderQueue(); // 하이라이트 위치 갱신
+  renderQueue(); 
 }
 
 async function loadTracks() {
@@ -144,20 +130,28 @@ function renderTracks(trackArray) {
       <button class="add-queue-btn">➕</button>
     `;
     
-    // 메인 리스트에서 곡을 누르면 큐 모드 해제
+    // ⭐️ 요점 1: 목록에서 곡 클릭 시 대기열 싹 비우고, 이 곡을 0번으로 넣고 바로 재생
     trackDiv.querySelector('.track-info').onclick = () => {
       const realIndex = tracks.findIndex(t => t.title === track.title);
-      isPlayingQueue = false;
-      queueCursor = -1;
-      playTrack(realIndex);
-      renderQueue(); // 하이라이트 제거
+      customQueue = [realIndex]; 
+      queueCursor = 0; 
+      loadAndPlay(customQueue[queueCursor]);
+      renderQueue(); 
     };
 
-    // ➕ 버튼 (알림창 제거)
+    // ⭐️ 요점 2: ➕ 버튼 누를 때 빈 대기열이면 추가 즉시 재생, 아니면 그냥 추가
     trackDiv.querySelector('.add-queue-btn').onclick = () => {
       const realIndex = tracks.findIndex(t => t.title === track.title);
+      const wasEmpty = customQueue.length === 0; // 대기열이 비어있었는지 체크
+      
       customQueue.push(realIndex);
-      renderQueue(); // 조용히 UI만 갱신
+      
+      // 비어있던 상태였다면 바로 재생 시작
+      if (wasEmpty) {
+        queueCursor = 0;
+        loadAndPlay(customQueue[queueCursor]);
+      }
+      renderQueue(); 
     };
 
     trackListContainer.appendChild(trackDiv);
@@ -165,7 +159,6 @@ function renderTracks(trackArray) {
 }
 
 function loadAndPlay(index) {
-  currentIndex = index;
   const track = tracks[index];
   keepAudioAlive();
   currentAudio.src = `assets/music/${track.filename}`;
@@ -174,62 +167,31 @@ function loadAndPlay(index) {
   updateMediaSession(track);
 }
 
-function playTrack(index) {
-  if (currentIndex !== -1 && !isPlayingQueue) playHistory.push(currentIndex);
-  loadAndPlay(index);
-}
-
-// ⭐️ 정교해진 다음 곡 로직
+// ⭐️ 이전/다음 곡 로직이 대기열(Queue) 하나만 바라보도록 엄청나게 단순해짐
 function playNext() {
-  if (isPlayingQueue) {
-    // 대기열 재생 중일 때: 다음 커서로 이동
-    if (queueCursor < customQueue.length - 1) {
-      queueCursor++;
-      loadAndPlay(customQueue[queueCursor]);
-      renderQueue();
-    } else {
-      // 대기열 끝까지 다 들었을 때
-      isPlayingQueue = false;
-      queueCursor = -1;
-      renderQueue();
-      pausePlayback();
-    }
+  if (customQueue.length > 0 && queueCursor < customQueue.length - 1) {
+    queueCursor++;
+    loadAndPlay(customQueue[queueCursor]);
+    renderQueue();
   } else {
-    // 메인 리스트 재생 중이거나 정지 상태일 때
-    if (customQueue.length > 0) {
-      if (currentIndex !== -1) playHistory.push(currentIndex);
-      isPlayingQueue = true;
-      queueCursor = 0; // 대기열의 첫 곡부터 시작
-      loadAndPlay(customQueue[queueCursor]);
-      renderQueue();
-    } else {
-      pausePlayback();
-    }
+    // 대기열 끝까지 다 들으면 멈춤
+    pausePlayback();
   }
 }
 
-// ⭐️ 정교해진 이전 곡 로직
 function playPrev() {
-  if (currentIndex === -1) return;
+  if (customQueue.length === 0) return;
+  
+  // 3초 이상 재생되었으면 맨 앞으로 돌림
   if (currentAudio.currentTime > 3) {
     currentAudio.currentTime = 0;
     return;
   }
 
-  // 대기열 안에서 이전 곡으로 이동
-  if (isPlayingQueue && queueCursor > 0) {
+  // 3초 미만일 때 이전 커서로 이동
+  if (queueCursor > 0) {
     queueCursor--;
     loadAndPlay(customQueue[queueCursor]);
-    renderQueue();
-    return;
-  }
-
-  // 대기열의 맨 처음이거나 메인 리스트일 때, 과거에 들었던 곡으로 돌아가기
-  if (playHistory.length > 0) {
-    isPlayingQueue = false;
-    queueCursor = -1;
-    const prevIndex = playHistory.pop();
-    loadAndPlay(prevIndex);
     renderQueue();
   } else {
     currentAudio.currentTime = 0;
@@ -268,7 +230,7 @@ function updateMediaSession(track) {
 }
 
 function togglePlay() {
-  if (currentIndex === -1) return;
+  if (customQueue.length === 0) return; 
   if (currentAudio.paused) {
     keepAudioAlive();
     currentAudio.play().catch(e => console.error(e));
