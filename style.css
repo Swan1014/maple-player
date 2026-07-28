@@ -271,3 +271,63 @@ header h1 {
   max-height: 40vh; /* 폴더가 많아지면 스크롤되도록 */
   overflow-y: auto;
 }
+
+/* --- ⭐️ 태그 뱃지 디자인 --- */
+.track-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tag-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* --- ⭐️ 태그 편집 팝업 디자인 --- */
+#tagEditOverlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); z-index: 2004; opacity: 1; transition: opacity 0.2s;
+}
+#tagEditOverlay.hidden { opacity: 0; pointer-events: none; }
+
+#tagEditMenu {
+  position: fixed; bottom: 0; left: 0; width: 100%;
+  background: #fff; border-radius: 20px 20px 0 0; z-index: 2005;
+  transform: translateY(0); transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  padding-bottom: 20px; max-height: 80vh; display: flex; flex-direction: column;
+}
+#tagEditMenu.hidden { transform: translateY(100%); }
+
+.tag-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.tag-list li { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; border-bottom: 1px solid #eee; }
+.tag-label { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.tag-color-dot { width: 16px; height: 16px; border-radius: 50%; }
+.tag-checkbox { width: 20px; height: 20px; accent-color: #ff7f00; }
+
+.tag-create-area {
+  padding: 15px 20px; display: flex; gap: 10px;
+  border-top: 1px solid #ddd; background: #f9f9f9;
+}
+#newTagColor {
+  width: 40px; height: 40px; padding: 0; border: none; border-radius: 8px; cursor: pointer;
+}
+#newTagName {
+  flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;
+}
+#createNewTagBtn {
+  padding: 0 15px; background: #222; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+}
+
+#tagEditCloseBtn {
+  width: calc(100% - 40px); margin: 15px 20px 0 20px; padding: 12px;
+  background: #ff7f00; border: none; border-radius: 10px; font-size: 15px;
+  font-weight: bold; color: white; cursor: pointer;
+}

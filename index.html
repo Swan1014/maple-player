@@ -100,10 +100,24 @@
     <button id="playlistSelectCloseBtn">취소</button>
   </div>
   
-  <audio id="mainAudio" preload="metadata"></audio>
-  <script src="app.js"></script>
-</body>
-</html>
+<!-- ⭐️ 태그 편집 팝업 -->
+  <div id="tagEditOverlay" class="hidden"></div>
+  <div id="tagEditMenu" class="hidden">
+    <div class="option-header">
+      <h3 id="tagEditTitle">태그 편집</h3>
+      <p id="tagEditDesc">이 곡에 지정할 태그를 선택하세요.</p>
+    </div>
+    <ul class="tag-list" id="tagCheckList">
+      <!-- JS로 태그 목록과 체크박스 렌더링 -->
+    </ul>
+    <div class="tag-create-area">
+      <!-- ⭐️ 색상 선택기와 텍스트 입력창 -->
+      <input type="color" id="newTagColor" value="#ff7f00">
+      <input type="text" id="newTagName" placeholder="새 태그 이름">
+      <button id="createNewTagBtn">추가</button>
+    </div>
+    <button id="tagEditCloseBtn">완료</button>
+  </div>
 
   <audio id="mainAudio" preload="metadata"></audio>
   <script src="app.js"></script>
