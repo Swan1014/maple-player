@@ -296,3 +296,20 @@ header h1 {
   padding: 10px;
   margin-left: 10px;
 }
+
+/* ⭐️ 드래그 손잡이 (≡) */
+.drag-handle {
+  padding: 10px;
+  color: #666;
+  font-size: 20px;
+  cursor: grab;
+  touch-action: none; /* 아이폰에서 드래그할 때 화면이 같이 스크롤되는 현상 방지 */
+}
+
+/* ⭐️ 드래그 중인 아이템 디자인 */
+.queue-item.dragging {
+  opacity: 0.7;
+  background-color: #333;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  border-left-color: #ff7f00;
+}
