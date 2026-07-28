@@ -10,10 +10,24 @@ const nowPlayingArea = document.getElementById('nowPlayingArea');
 const queueList = document.getElementById('queueList');
 const clearQueueBtn = document.getElementById('clearQueueBtn');
 
+// ⭐️ 옵션 메뉴 관련 요소들
+const optionOverlay = document.getElementById('optionOverlay');
+const optionMenu = document.getElementById('optionMenu');
+const optionTitle = document.getElementById('optionTitle');
+const optionDesc = document.getElementById('optionDesc');
+const optionCloseBtn = document.getElementById('optionCloseBtn');
+const optPlayNext = document.getElementById('optPlayNext');
+const optPlayLast = document.getElementById('optPlayLast');
+const optAddPlaylist = document.getElementById('optAddPlaylist');
+const optEditTag = document.getElementById('optEditTag');
+
 let tracks = [];
-let customQueue = []; // 이제 앱의 모든 재생은 무조건 이 대기열을 거침
-let queueCursor = -1; // 현재 대기열의 몇 번째 곡을 듣고 있는지 추적
+let customQueue = []; 
+let queueCursor = -1; 
 let audioCtx = null;
+
+// 옵션 메뉴에서 선택된 곡의 진짜 ID(인덱스)를 임시로 저장해둘 변수
+let selectedTrackIndex = -1;
 
 function keepAudioAlive() {
   if (!audioCtx) {
@@ -47,6 +61,71 @@ nowPlayingArea.onclick = () => {
   bottomSheet.classList.toggle('expanded');
 };
 
+// ⭐️ 옵션 메뉴 열기 함수
+function openOptionMenu(trackIndex) {
+  selectedTrackIndex = trackIndex;
+  const track = tracks[trackIndex];
+  
+  optionTitle.textContent = track.title;
+  optionDesc.textContent = track.description;
+  
+  optionOverlay.classList.remove('hidden');
+  optionMenu.classList.remove('hidden');
+}
+
+// ⭐️ 옵션 메뉴 닫기 함수
+function closeOptionMenu() {
+  optionOverlay.classList.add('hidden');
+  optionMenu.classList.add('hidden');
+}
+
+optionOverlay.onclick = closeOptionMenu;
+optionCloseBtn.onclick = closeOptionMenu;
+
+// ⭐️ [옵션] 다음에 재생 기능 로직
+optPlayNext.onclick = () => {
+  if (selectedTrackIndex !== -1) {
+    if (customQueue.length === 0) {
+      // 대기열이 비어있으면 그냥 추가 후 즉시 재생
+      customQueue.push(selectedTrackIndex);
+      queueCursor = 0;
+      loadAndPlay(customQueue[queueCursor]);
+    } else {
+      // 현재 재생 중인 커서 '바로 다음'에 끼워넣기 (splice 활용)
+      customQueue.splice(queueCursor + 1, 0, selectedTrackIndex);
+    }
+    renderQueue();
+  }
+  closeOptionMenu();
+};
+
+// ⭐️ [옵션] 마지막에 재생 기능 로직
+optPlayLast.onclick = () => {
+  if (selectedTrackIndex !== -1) {
+    if (customQueue.length === 0) {
+      customQueue.push(selectedTrackIndex);
+      queueCursor = 0;
+      loadAndPlay(customQueue[queueCursor]);
+    } else {
+      // 대기열의 맨 끝에 추가 (기존 방식)
+      customQueue.push(selectedTrackIndex);
+    }
+    renderQueue();
+  }
+  closeOptionMenu();
+};
+
+// [옵션] 껍데기 기능들
+optAddPlaylist.onclick = () => {
+  alert("플레이리스트에 추가 기능은 곧 업데이트됩니다!");
+  closeOptionMenu();
+};
+
+optEditTag.onclick = () => {
+  alert("태그 편집 기능은 곧 업데이트됩니다!");
+  closeOptionMenu();
+};
+
 function renderQueue() {
   queueList.innerHTML = '';
 
@@ -60,32 +139,30 @@ function renderQueue() {
     const qDiv = document.createElement('div');
     qDiv.className = 'queue-item';
     
-    if (queuePosition === queueCursor) {
-      qDiv.classList.add('active');
-    }
+    if (queuePosition === queueCursor) qDiv.classList.add('active');
 
+    // 대기열 내부의 버튼도 ➕에서 ⋮로 변경
     qDiv.innerHTML = `
       <div class="queue-info">
         <h4>${track.title}</h4>
         <p>${track.description}</p>
       </div>
-      <button class="add-queue-btn">➕</button>
+      <button class="option-btn">⋮</button>
     `;
 
     qDiv.querySelector('.queue-info').onclick = () => {
       jumpToQueueTrack(queuePosition);
     };
 
-    qDiv.querySelector('.add-queue-btn').onclick = () => {
-      customQueue.push(trackIndex);
-      renderQueue(); 
+    // 대기열에서 옵션 버튼을 눌러도 똑같이 메뉴 팝업이 뜸
+    qDiv.querySelector('.option-btn').onclick = () => {
+      openOptionMenu(trackIndex);
     };
 
     queueList.appendChild(qDiv);
   });
 }
 
-// 대기열 비우기 (음악도 함께 정지되도록 깔끔하게 처리)
 clearQueueBtn.onclick = () => {
   customQueue = [];
   queueCursor = -1;
@@ -121,16 +198,16 @@ function renderTracks(trackArray) {
   trackArray.forEach((track) => {
     const trackDiv = document.createElement('div');
     trackDiv.className = 'track-item';
+    // 메인 리스트 버튼 ➕ -> ⋮ 변경
     trackDiv.innerHTML = `
       <div class="track-info">
         <h3>${track.title}</h3>
         <p>${track.description}</p>
         <p>🏷️ ${track.tags.join(', ')}</p>
       </div>
-      <button class="add-queue-btn">➕</button>
+      <button class="option-btn">⋮</button>
     `;
     
-    // ⭐️ 요점 1: 목록에서 곡 클릭 시 대기열 싹 비우고, 이 곡을 0번으로 넣고 바로 재생
     trackDiv.querySelector('.track-info').onclick = () => {
       const realIndex = tracks.findIndex(t => t.title === track.title);
       customQueue = [realIndex]; 
@@ -139,19 +216,9 @@ function renderTracks(trackArray) {
       renderQueue(); 
     };
 
-    // ⭐️ 요점 2: ➕ 버튼 누를 때 빈 대기열이면 추가 즉시 재생, 아니면 그냥 추가
-    trackDiv.querySelector('.add-queue-btn').onclick = () => {
+    trackDiv.querySelector('.option-btn').onclick = () => {
       const realIndex = tracks.findIndex(t => t.title === track.title);
-      const wasEmpty = customQueue.length === 0; // 대기열이 비어있었는지 체크
-      
-      customQueue.push(realIndex);
-      
-      // 비어있던 상태였다면 바로 재생 시작
-      if (wasEmpty) {
-        queueCursor = 0;
-        loadAndPlay(customQueue[queueCursor]);
-      }
-      renderQueue(); 
+      openOptionMenu(realIndex);
     };
 
     trackListContainer.appendChild(trackDiv);
@@ -167,28 +234,22 @@ function loadAndPlay(index) {
   updateMediaSession(track);
 }
 
-// ⭐️ 이전/다음 곡 로직이 대기열(Queue) 하나만 바라보도록 엄청나게 단순해짐
 function playNext() {
   if (customQueue.length > 0 && queueCursor < customQueue.length - 1) {
     queueCursor++;
     loadAndPlay(customQueue[queueCursor]);
     renderQueue();
   } else {
-    // 대기열 끝까지 다 들으면 멈춤
     pausePlayback();
   }
 }
 
 function playPrev() {
   if (customQueue.length === 0) return;
-  
-  // 3초 이상 재생되었으면 맨 앞으로 돌림
   if (currentAudio.currentTime > 3) {
     currentAudio.currentTime = 0;
     return;
   }
-
-  // 3초 미만일 때 이전 커서로 이동
   if (queueCursor > 0) {
     queueCursor--;
     loadAndPlay(customQueue[queueCursor]);

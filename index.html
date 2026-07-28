@@ -49,6 +49,22 @@
     </div>
   </div>
 
+<!-- ⭐️ 옵션 메뉴 팝업 (Action Sheet) -->
+  <div id="optionOverlay" class="hidden"></div> <!-- 메뉴 떴을 때 배경 어둡게 -->
+  <div id="optionMenu" class="hidden">
+    <div class="option-header">
+      <h3 id="optionTitle">곡 제목</h3>
+      <p id="optionDesc">설명</p>
+    </div>
+    <ul class="option-list">
+      <li id="optPlayNext">다음에 재생</li>
+      <li id="optPlayLast">마지막에 재생</li>
+      <li id="optAddPlaylist">플레이리스트에 추가</li>
+      <li id="optEditTag">태그 편집</li>
+    </ul>
+    <button id="optionCloseBtn">닫기</button>
+  </div>
+
   <!-- ⭐️ 추가: 백그라운드 유지를 위해 HTML에 직접 오디오 태그 삽입 -->
   <audio id="mainAudio" preload="metadata"></audio>
 
