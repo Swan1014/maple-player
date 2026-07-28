@@ -2,7 +2,6 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <!-- 모바일 화면에 꽉 차게, 아이폰 앱처럼 보이게 하는 필수 태그들 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -10,25 +9,37 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 상단 검색 영역 -->
   <header>
     <h1>Maple Player 🍁</h1>
+    <!-- ⭐️ 1. 상단 탭 버튼 추가 -->
+    <div class="tabs">
+      <button id="tabAll" class="tab-btn active">전체 곡</button>
+      <button id="tabPlaylist" class="tab-btn">내 플레이리스트</button>
+    </div>
     <input type="text" id="searchInput" placeholder="곡 제목, 설명, 태그로 검색해보세요...">
   </header>
 
-  <!-- 음악 리스트가 뜰 영역 -->
-  <main id="trackList">
-    <!-- 자바스크립트가 여기에 곡 목록을 채워넣을 거야 -->
+  <!-- ⭐️ 2. 화면 영역을 두 개로 분리 -->
+  <!-- 화면 A: 전체 곡 목록 (기존과 동일) -->
+  <main id="trackList" class="view-area active">
   </main>
 
-<!-- 기존 <footer> 삭제 후 아래 코드로 교체 -->
+  <!-- 화면 B: 플레이리스트 관리 목록 -->
+  <main id="playlistView" class="view-area">
+    <div class="playlist-header">
+      <button id="createNewPlaylistBtn">새 플레이리스트 만들기 ➕</button>
+    </div>
+    <div id="playlistContainer">
+      <!-- JS가 여기에 플레이리스트 폴더들을 그릴 거야 -->
+    </div>
+  </main>
+
+  <!-- 하단 바텀 시트 (기존과 동일) -->
   <div id="bottomSheet">
-    <!-- 1. 항상 보이는 플레이어 바 -->
     <div id="playerBar">
-      <!-- 클릭하면 올라오게 할 영역 -->
       <div class="now-playing" id="nowPlayingArea">
         <span id="currentTitle">재생 중인 곡이 없습니다</span>
-        <span class="chevron">▲</span> <!-- 올리고 내리는 아이콘 -->
+        <span class="chevron">▲</span>
       </div>
       <div class="controls">
         <button id="prevBtn">⏮</button>
@@ -36,40 +47,33 @@
         <button id="nextBtn">⏭</button>
       </div>
     </div>
-    
-    <!-- 2. 위로 스와이프하면 보이는 대기열 영역 -->
     <div id="queueContainer">
       <div class="queue-header">
         <h3>재생 대기열</h3>
         <button id="clearQueueBtn">비우기</button>
       </div>
-      <div id="queueList">
-        <!-- JS가 여기에 대기열을 채워넣음 -->
-      </div>
+      <div id="queueList"></div>
     </div>
   </div>
 
-<!-- ⭐️ 옵션 메뉴 팝업 (Action Sheet) -->
-  <div id="optionOverlay" class="hidden"></div> <!-- 메뉴 떴을 때 배경 어둡게 -->
+  <!-- 옵션 팝업 (Action Sheet) (기존과 동일) -->
+  <div id="optionOverlay" class="hidden"></div>
   <div id="optionMenu" class="hidden">
     <div class="option-header">
       <h3 id="optionTitle">곡 제목</h3>
       <p id="optionDesc">설명</p>
     </div>
-<ul class="option-list">
+    <ul class="option-list">
       <li id="optPlayNext">다음에 재생</li>
       <li id="optPlayLast">마지막에 재생</li>
       <li id="optRemoveQueue">대기열에서 삭제</li>
       <li id="optAddPlaylist">플레이리스트에 추가</li>
       <li id="optEditTag">태그 편집</li>
     </ul>
-    </ul>
     <button id="optionCloseBtn">닫기</button>
   </div>
 
-  <!-- ⭐️ 추가: 백그라운드 유지를 위해 HTML에 직접 오디오 태그 삽입 -->
   <audio id="mainAudio" preload="metadata"></audio>
-
   <script src="app.js"></script>
 </body>
 </html>

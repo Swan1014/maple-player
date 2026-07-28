@@ -1,25 +1,54 @@
-/* 기본 설정: 폰트와 배경색 */
+/* 기본 설정 */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: #f8f9fa;
   color: #333;
-  padding-bottom: 80px; /* 하단 재생 바가 리스트를 가리지 않게 여백 주기 */
+  padding-bottom: 80px; 
 }
 
-/* 상단 영역 (제목, 검색창) */
+/* 상단 영역 */
 header {
   padding: 20px;
   background-color: #fff;
   position: sticky;
   top: 0;
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  z-index: 100;
 }
 
 header h1 {
   margin: 0 0 10px 0;
   font-size: 24px;
-  color: #ff7f00; /* 메이플 느낌의 주황색 */
+  color: #ff7f00; 
+}
+
+/* ⭐️ 탭 버튼 디자인 */
+.tabs {
+  display: flex;
+  margin-bottom: 15px;
+  background: #eee;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: #fff;
+  color: #ff7f00;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 #searchInput {
@@ -31,7 +60,44 @@ header h1 {
   font-size: 16px;
 }
 
-/* 리스트 아이템 디자인 (새로 바뀐 부분) */
+/* ⭐️ 화면 전환 디자인 (active 클래스가 있을 때만 보임) */
+.view-area {
+  display: none;
+}
+.view-area.active {
+  display: block;
+}
+
+/* 플레이리스트 화면 디자인 */
+.playlist-header {
+  padding: 15px 20px;
+}
+
+#createNewPlaylistBtn {
+  width: 100%;
+  padding: 12px;
+  background-color: #ff7f00;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.playlist-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+.playlist-item h3 { margin: 0; font-size: 16px; }
+.playlist-item p { margin: 5px 0 0 0; font-size: 12px; color: #888; }
+
+/* 메인 리스트 아이템 디자인 */
 .track-item {
   display: flex;
   justify-content: space-between;
@@ -40,276 +106,76 @@ header h1 {
   border-bottom: 1px solid #eee;
   background-color: #fff;
 }
+.track-info { flex: 1; cursor: pointer; }
+.track-info h3 { margin: 0 0 5px 0; font-size: 16px; }
+.track-info p { margin: 0; font-size: 12px; color: #666; }
 
-.track-info {
-  flex: 1;
-  cursor: pointer;
-}
-
-.track-info h3 {
-  margin: 0 0 5px 0;
-  font-size: 16px;
-}
-
-.track-info p {
-  margin: 0;
-  font-size: 12px;
-  color: #666;
-}
-
-.add-queue-btn {
-  background-color: #ff7f00;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  margin-left: 15px;
-  font-weight: bold;
-}
-
-/* --- 하단 슬라이드 업 시트 (플레이어 바 + 대기열) --- */
-#bottomSheet {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 70vh; /* 화면의 70% 높이까지 올라옴 */
-  background-color: #222;
-  color: white;
-  border-radius: 20px 20px 0 0;
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
-  
-  /* 평소에는 위쪽 70px(플레이어 바)만 보이고 나머지는 아래로 숨김 */
-  transform: translateY(calc(100% - 70px)); 
-  z-index: 1000;
-}
-
-/* JS에서 'expanded' 클래스를 붙이면 팝업이 위로 쑥 올라옴 */
-#bottomSheet.expanded {
-  transform: translateY(0);
-}
-
-#playerBar {
-  height: 70px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  box-sizing: border-box;
-  border-bottom: 1px solid #333;
-}
-
-.now-playing {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  cursor: pointer; /* 누를 수 있다는 느낌 주기 */
-  overflow: hidden;
-}
-
-#currentTitle {
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-right: 10px;
-}
-
-.chevron {
-  font-size: 12px;
-  color: #888;
-  transition: transform 0.3s;
-}
-
-#bottomSheet.expanded .chevron {
-  transform: rotate(180deg); /* 열리면 화살표 방향 뒤집기 */
-}
-
-.controls button {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 24px;
-  margin-left: 10px;
-  cursor: pointer;
-}
-
-/* --- 대기열 리스트 디자인 --- */
-#queueContainer {
-  flex: 1;
-  overflow-y: auto;
-  background-color: #1a1a1a;
-  padding-bottom: 20px;
-}
-
-.queue-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #333;
-}
-
-.queue-header h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-#clearQueueBtn {
-  background: none;
-  border: 1px solid #555;
-  color: #aaa;
-  padding: 5px 10px;
-  border-radius: 5px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-/* 대기열 안의 곡 상자 */
-.queue-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #333;
-  border-left: 4px solid transparent; /* 선택 표시를 위한 여백 */
-  box-sizing: border-box;
-}
-
-/* ⭐️ 현재 재생 중인 큐 아이템 하이라이트 */
-.queue-item.active {
-  background-color: #2a2a2a;
-  border-left-color: #ff7f00;
-}
-
-.queue-info {
-  flex: 1;
-  cursor: pointer;
-}
-
-.queue-info h4 {
-  margin: 0 0 5px 0;
-  font-size: 14px;
-  font-weight: normal;
-  color: #eee;
-}
-
-.queue-info p {
-  margin: 0;
-  font-size: 12px;
-  color: #888;
-}
-
-.queue-item .add-queue-btn {
-  background-color: #ff7f00;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  cursor: pointer;
-  margin-left: 15px;
-}
-
-.empty-queue {
-  text-align: center;
-  padding: 40px 20px;
-  color: #666;
-  font-size: 14px;
-}
-
-/* --- 옵션 팝업 메뉴 (Action Sheet) --- */
-/* 배경을 어둡게 덮는 레이어 */
+/* 옵션 팝업 디자인 */
 #optionOverlay {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.5);
-  z-index: 2000;
-  opacity: 1;
-  transition: opacity 0.2s;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); z-index: 2000; opacity: 1; transition: opacity 0.2s;
 }
-#optionOverlay.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
+#optionOverlay.hidden { opacity: 0; pointer-events: none; }
 
-/* 화면 아래에서 올라오는 메뉴판 */
 #optionMenu {
-  position: fixed;
-  bottom: 0; left: 0; width: 100%;
-  background: #fff;
-  border-radius: 20px 20px 0 0;
-  z-index: 2001;
-  transform: translateY(0);
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: fixed; bottom: 0; left: 0; width: 100%;
+  background: #fff; border-radius: 20px 20px 0 0; z-index: 2001;
+  transform: translateY(0); transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   padding-bottom: 20px;
 }
-#optionMenu.hidden {
-  transform: translateY(100%);
-}
+#optionMenu.hidden { transform: translateY(100%); }
 
-.option-header {
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-}
+.option-header { padding: 20px; border-bottom: 1px solid #eee; }
 .option-header h3 { margin: 0 0 5px 0; font-size: 16px; color: #ff7f00; }
 .option-header p { margin: 0; font-size: 12px; color: #666; }
-
-.option-list {
-  list-style: none;
-  margin: 0; padding: 0;
-}
-.option-list li {
-  padding: 15px 20px;
-  border-bottom: 1px solid #f9f9f9;
-  font-size: 15px;
-  color: #333;
-  cursor: pointer;
-}
+.option-list { list-style: none; margin: 0; padding: 0; }
+.option-list li { padding: 15px 20px; border-bottom: 1px solid #f9f9f9; font-size: 15px; color: #333; cursor: pointer; }
 .option-list li:active { background-color: #f0f0f0; }
 
 #optionCloseBtn {
-  width: calc(100% - 40px);
-  margin: 15px 20px 0 20px;
-  padding: 12px;
-  background: #eee;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: bold;
-  color: #333;
-  cursor: pointer;
+  width: calc(100% - 40px); margin: 15px 20px 0 20px; padding: 12px;
+  background: #eee; border: none; border-radius: 10px; font-size: 15px;
+  font-weight: bold; color: #333; cursor: pointer;
 }
 
-/* ⭐️ 기존의 주황색 ➕ 버튼을 투명한 ⋮ 버튼으로 변경 */
 .option-btn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: #888;
-  cursor: pointer;
-  padding: 10px;
-  margin-left: 10px;
+  background: none; border: none; font-size: 20px; color: #888;
+  cursor: pointer; padding: 10px; margin-left: 10px;
 }
 
-/* ⭐️ 드래그 손잡이 (≡) */
-.drag-handle {
-  padding: 10px;
-  color: #666;
-  font-size: 20px;
-  cursor: grab;
-  touch-action: none; /* 아이폰에서 드래그할 때 화면이 같이 스크롤되는 현상 방지 */
+/* 바텀 시트 디자인 */
+#bottomSheet {
+  position: fixed; bottom: 0; left: 0; width: 100%; height: 70vh;
+  background-color: #222; color: white; border-radius: 20px 20px 0 0;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column;
+  box-shadow: 0 -5px 20px rgba(0,0,0,0.5); transform: translateY(calc(100% - 70px)); z-index: 1000;
 }
+#bottomSheet.expanded { transform: translateY(0); }
 
-/* ⭐️ 드래그 중인 아이템 디자인 */
-.queue-item.dragging {
-  opacity: 0.7;
-  background-color: #333;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-  border-left-color: #ff7f00;
+#playerBar {
+  height: 70px; display: flex; justify-content: space-between; align-items: center;
+  padding: 0 20px; box-sizing: border-box; border-bottom: 1px solid #333;
 }
+.now-playing { flex: 1; display: flex; align-items: center; cursor: pointer; overflow: hidden; }
+#currentTitle { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px; }
+.chevron { font-size: 12px; color: #888; transition: transform 0.3s; }
+#bottomSheet.expanded .chevron { transform: rotate(180deg); }
+.controls button { background: none; border: none; color: white; font-size: 24px; margin-left: 10px; cursor: pointer; }
+
+#queueContainer { flex: 1; overflow-y: auto; background-color: #1a1a1a; padding-bottom: 20px; }
+.queue-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #333; }
+.queue-header h3 { margin: 0; font-size: 16px; }
+#clearQueueBtn { background: none; border: 1px solid #555; color: #aaa; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; }
+
+.queue-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 20px; border-bottom: 1px solid #333; border-left: 4px solid transparent; box-sizing: border-box;
+}
+.queue-item.active { background-color: #2a2a2a; border-left-color: #ff7f00; }
+.queue-info { flex: 1; cursor: pointer; }
+.queue-info h4 { margin: 0 0 5px 0; font-size: 14px; font-weight: normal; color: #eee; }
+.queue-info p { margin: 0; font-size: 12px; color: #888; }
+.empty-queue { text-align: center; padding: 40px 20px; color: #666; font-size: 14px; }
+
+.drag-handle { padding: 10px; color: #666; font-size: 20px; cursor: grab; touch-action: none; }
+.queue-item.dragging { opacity: 0.7; background-color: #333; box-shadow: 0 5px 15px rgba(0,0,0,0.5); border-left-color: #ff7f00; }

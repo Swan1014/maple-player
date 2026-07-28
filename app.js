@@ -1,4 +1,8 @@
 const trackListContainer = document.getElementById('trackList');
+const playlistView = document.getElementById('playlistView'); // ⭐️ 추가됨
+const tabAll = document.getElementById('tabAll'); // ⭐️ 추가됨
+const tabPlaylist = document.getElementById('tabPlaylist'); // ⭐️ 추가됨
+
 const currentTitle = document.getElementById('currentTitle');
 const playBtn = document.getElementById('playBtn');
 const prevBtn = document.getElementById('prevBtn');
@@ -20,6 +24,23 @@ const optPlayLast = document.getElementById('optPlayLast');
 const optRemoveQueue = document.getElementById('optRemoveQueue'); 
 const optAddPlaylist = document.getElementById('optAddPlaylist');
 const optEditTag = document.getElementById('optEditTag');
+
+// ⭐️ 탭 전환 기능 로직 추가
+tabAll.onclick = () => {
+  tabAll.classList.add('active');
+  tabPlaylist.classList.remove('active');
+  trackListContainer.classList.add('active'); // 전체 곡 화면 보이기
+  playlistView.classList.remove('active'); // 플레이리스트 화면 숨기기
+  searchInput.style.display = 'block'; // 검색창 켜기
+};
+
+tabPlaylist.onclick = () => {
+  tabPlaylist.classList.add('active');
+  tabAll.classList.remove('active');
+  playlistView.classList.add('active'); // 플레이리스트 화면 보이기
+  trackListContainer.classList.remove('active'); // 전체 곡 화면 숨기기
+  searchInput.style.display = 'none'; // 검색창 끄기
+};
 
 let tracks = [];
 let customQueue = []; 
