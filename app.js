@@ -1,19 +1,20 @@
 const trackListContainer = document.getElementById('trackList');
-const playlistView = document.getElementById('playlistView'); // ⭐️ 추가됨
+const playlistView = document.getElementById('playlistView');
 const playlistDetailView = document.getElementById('playlistDetailView');
+const tabAll = document.getElementById('tabAll');
+const tabPlaylist = document.getElementById('tabPlaylist');
+
 const detailTitle = document.getElementById('detailTitle');
 const detailCount = document.getElementById('detailCount');
 const detailTrackList = document.getElementById('detailTrackList');
 const backToPlaylistBtn = document.getElementById('backToPlaylistBtn');
 const playAllBtn = document.getElementById('playAllBtn');
 
-const tabAll = document.getElementById('tabAll'); // ⭐️ 추가됨
-const tabPlaylist = document.getElementById('tabPlaylist'); // ⭐️ 추가됨
-
 const currentTitle = document.getElementById('currentTitle');
 const playBtn = document.getElementById('playBtn');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
+const shuffleBtn = document.getElementById('shuffleBtn'); // ⭐️ 추가됨
 const searchInput = document.getElementById('searchInput');
 const currentAudio = document.getElementById('mainAudio');
 const bottomSheet = document.getElementById('bottomSheet');
@@ -32,38 +33,12 @@ const optRemoveQueue = document.getElementById('optRemoveQueue');
 const optAddPlaylist = document.getElementById('optAddPlaylist');
 const optEditTag = document.getElementById('optEditTag');
 
-// ⭐️ 방금 추가한 플레이리스트 선택 팝업 요소들 가져오기
 const playlistSelectOverlay = document.getElementById('playlistSelectOverlay');
 const playlistSelectMenu = document.getElementById('playlistSelectMenu');
 const playlistSelectList = document.getElementById('playlistSelectList');
 const playlistSelectCloseBtn = document.getElementById('playlistSelectCloseBtn');
 
-function closePlaylistSelectMenu() {
-  playlistSelectOverlay.classList.add('hidden');
-  playlistSelectMenu.classList.add('hidden');
-}
-playlistSelectOverlay.onclick = closePlaylistSelectMenu;
-playlistSelectCloseBtn.onclick = closePlaylistSelectMenu;
-
-// ⭐️ 탭 전환 기능 로직 추가
-tabAll.onclick = () => {
-  tabAll.classList.add('active');
-  tabPlaylist.classList.remove('active');
-  trackListContainer.classList.add('active'); // 전체 곡 화면 보이기
-  playlistView.classList.remove('active'); // 플레이리스트 화면 숨기기
-  playlistDetailView.classList.remove('active');
-  searchInput.style.display = 'block'; // 검색창 켜기
-};
-
-tabPlaylist.onclick = () => {
-  tabPlaylist.classList.add('active');
-  tabAll.classList.remove('active');
-  playlistView.classList.add('active'); // 플레이리스트 화면 보이기
-  trackListContainer.classList.remove('active'); // 전체 곡 화면 숨기기
-  playlistDetailView.classList.remove('active');
-  searchInput.style.display = 'none'; // 검색창 끄기
-};
-
+// 상태 변수들
 let tracks = [];
 let customQueue = []; 
 let queueCursor = -1; 
@@ -71,7 +46,76 @@ let audioCtx = null;
 
 let selectedTrackIndex = -1;
 let selectedQueuePos = -1; 
+let myPlaylists = [];
 
+// ⭐️ 셔플 관리를 위한 새로운 변수
+let isShuffle = false;
+let originalQueue = []; // 셔플을 끄면 돌아갈 '원래 대기열' 백업 공간
+
+// 탭 전환
+tabAll.onclick = () => {
+  tabAll.classList.add('active');
+  tabPlaylist.classList.remove('active');
+  trackListContainer.classList.add('active'); 
+  playlistView.classList.remove('active'); 
+  playlistDetailView.classList.remove('active');
+  searchInput.style.display = 'block'; 
+};
+
+tabPlaylist.onclick = () => {
+  tabPlaylist.classList.add('active');
+  tabAll.classList.remove('active');
+  playlistView.classList.add('active'); 
+  trackListContainer.classList.remove('active'); 
+  playlistDetailView.classList.remove('active');
+  searchInput.style.display = 'none'; 
+};
+
+// ⭐️ 배열을 랜덤하게 섞는 함수 (Fisher-Yates 알고리즘)
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+// ⭐️ 셔플 버튼 토글 로직 (유튜브 뮤직 스타일)
+shuffleBtn.onclick = () => {
+  if (customQueue.length === 0) return; // 대기열 비어있으면 무시
+
+  isShuffle = !isShuffle;
+  shuffleBtn.classList.toggle('active', isShuffle);
+
+  if (isShuffle) {
+    // 셔플 켜기: 현재 대기열 백업
+    originalQueue = [...customQueue];
+
+    // 지금 듣고 있는 곡 번호 저장
+    const currentTrackId = customQueue[queueCursor];
+
+    // 현재 듣고 있는 곡을 제외한 나머지 곡들만 분리
+    const remainingTracks = customQueue.filter((_, index) => index !== queueCursor);
+
+    // 나머지 곡들 마구 섞기
+    shuffleArray(remainingTracks);
+
+    // 새 대기열 = [현재 듣고 있는 곡] + [섞인 나머지 곡들]
+    customQueue = [currentTrackId, ...remainingTracks];
+    queueCursor = 0; // 현재 곡이 맨 앞으로 왔으므로 커서는 0
+  } else {
+    // 셔플 끄기: 원본 대기열로 복구
+    const currentTrackId = customQueue[queueCursor];
+    customQueue = [...originalQueue]; // 원본으로 덮어쓰기
+
+    // 원본 대기열에서 지금 듣고 있는 곡이 원래 몇 번이었는지 찾아내기
+    queueCursor = customQueue.findIndex(id => id === currentTrackId);
+    originalQueue = []; // 백업 초기화
+  }
+  
+  renderQueue(); // 섞인(또는 복구된) 대기열 화면 새로고침
+};
+
+// --- 이 아래부터는 기존 기능 유지 (오디오, 재생, 팝업, 렌더링 등) ---
 function keepAudioAlive() {
   if (!audioCtx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -100,24 +144,16 @@ currentAudio.addEventListener('pause', () => {
 
 currentAudio.addEventListener('ended', playNext);
 
-nowPlayingArea.onclick = () => {
-  bottomSheet.classList.toggle('expanded');
-};
+nowPlayingArea.onclick = () => { bottomSheet.classList.toggle('expanded'); };
 
+// 옵션 메뉴 처리
 function openOptionMenu(trackIndex, queuePos = -1) {
   selectedTrackIndex = trackIndex;
   selectedQueuePos = queuePos;
-  
   const track = tracks[trackIndex];
   optionTitle.textContent = track.title;
   optionDesc.textContent = track.description;
-  
-  if (queuePos === -1) {
-    optRemoveQueue.style.display = 'none';
-  } else {
-    optRemoveQueue.style.display = 'block';
-  }
-  
+  optRemoveQueue.style.display = queuePos === -1 ? 'none' : 'block';
   optionOverlay.classList.remove('hidden');
   optionMenu.classList.remove('hidden');
 }
@@ -130,6 +166,13 @@ function closeOptionMenu() {
 optionOverlay.onclick = closeOptionMenu;
 optionCloseBtn.onclick = closeOptionMenu;
 
+function closePlaylistSelectMenu() {
+  playlistSelectOverlay.classList.add('hidden');
+  playlistSelectMenu.classList.add('hidden');
+}
+playlistSelectOverlay.onclick = closePlaylistSelectMenu;
+playlistSelectCloseBtn.onclick = closePlaylistSelectMenu;
+
 optPlayNext.onclick = () => {
   if (selectedTrackIndex !== -1) {
     if (customQueue.length === 0) {
@@ -138,6 +181,10 @@ optPlayNext.onclick = () => {
       loadAndPlay(customQueue[queueCursor]);
     } else {
       customQueue.splice(queueCursor + 1, 0, selectedTrackIndex);
+    }
+    // ⭐️ 셔플 중일 땐 원본 백업 배열에도 살짝 끼워넣어줌
+    if (isShuffle && originalQueue.length > 0) {
+       originalQueue.push(selectedTrackIndex); 
     }
     renderQueue();
   }
@@ -153,6 +200,10 @@ optPlayLast.onclick = () => {
     } else {
       customQueue.push(selectedTrackIndex);
     }
+    // ⭐️ 셔플 중일 땐 원본 백업 배열 맨 끝에 넣음
+    if (isShuffle && originalQueue.length > 0) {
+       originalQueue.push(selectedTrackIndex); 
+    }
     renderQueue();
   }
   closeOptionMenu();
@@ -160,7 +211,14 @@ optPlayLast.onclick = () => {
 
 optRemoveQueue.onclick = () => {
   if (selectedQueuePos !== -1) {
+    const removingTrackId = customQueue[selectedQueuePos];
     customQueue.splice(selectedQueuePos, 1); 
+
+    // ⭐️ 셔플 중일 땐 원본 백업 배열에서도 찾아서 지움
+    if (isShuffle && originalQueue.length > 0) {
+      const orgIdx = originalQueue.indexOf(removingTrackId);
+      if (orgIdx !== -1) originalQueue.splice(orgIdx, 1);
+    }
 
     if (selectedQueuePos < queueCursor) {
       queueCursor--;
@@ -186,58 +244,42 @@ optRemoveQueue.onclick = () => {
 
 optAddPlaylist.onclick = () => {
   if (selectedTrackIndex === -1) return;
-
-  // 1. 기존 옵션 메뉴 닫기
   closeOptionMenu();
-
-  // 2. 만들어둔 플레이리스트가 없으면 알림 띄우기
   if (myPlaylists.length === 0) {
     alert("만들어진 플레이리스트가 없습니다. [내 플레이리스트] 탭에서 먼저 만들어주세요!");
     return;
   }
-
-  // 3. 내 플레이리스트 폴더 목록을 팝업에 그리기
   playlistSelectList.innerHTML = '';
-  myPlaylists.forEach((playlist, plIndex) => {
+  myPlaylists.forEach((playlist) => {
     const li = document.createElement('li');
     li.textContent = `📁 ${playlist.name} (${playlist.tracks.length}곡)`;
-    
-    // 폴더를 클릭하면 그 안에 곡 집어넣기
     li.onclick = () => {
-      // 이미 들어있는 곡인지 중복 체크
       if (playlist.tracks.includes(selectedTrackIndex)) {
         alert("이미 이 플레이리스트에 들어있는 곡입니다.");
       } else {
-        playlist.tracks.push(selectedTrackIndex); // 곡 번호 추가
-        savePlaylists(); // LocalStorage에 저장
-        renderPlaylists(); // 폴더 곡 수 업데이트
+        playlist.tracks.push(selectedTrackIndex);
+        savePlaylists();
+        renderPlaylists();
         alert(`'${playlist.name}'에 곡이 추가되었습니다!`);
       }
       closePlaylistSelectMenu();
     };
     playlistSelectList.appendChild(li);
   });
-
-  // 4. 팝업 띄우기
   playlistSelectOverlay.classList.remove('hidden');
   playlistSelectMenu.classList.remove('hidden');
 };
 
-optEditTag.onclick = () => {
-  alert("태그 편집 기능은 곧 업데이트됩니다!");
-  closeOptionMenu();
-};
+optEditTag.onclick = () => { alert("태그 편집 기능은 곧 업데이트됩니다!"); closeOptionMenu(); };
 
 let draggingElement = null;
 
 function renderQueue() {
   queueList.innerHTML = '';
-
   if (customQueue.length === 0) {
     queueList.innerHTML = '<div class="empty-queue">대기열이 비어있습니다.</div>';
     return;
   }
-
   customQueue.forEach((trackIndex, queuePosition) => {
     const track = tracks[trackIndex];
     const qDiv = document.createElement('div');
@@ -260,28 +302,21 @@ function renderQueue() {
 
     const dragHandle = qDiv.querySelector('.drag-handle');
     
-    // ⭐️ PC(마우스)와 모바일(터치) 모두 지원하는 드래그 시작 로직
     const dragStart = (e) => {
-      e.preventDefault(); // 텍스트 드래그 선택 방지
+      e.preventDefault();
       draggingElement = qDiv;
       draggingElement.classList.add('dragging');
-
-      // PC 마우스용 전역 이벤트 등록 (마우스가 손잡이를 벗어나도 드래그 유지)
       if (e.type === 'mousedown') {
         document.addEventListener('mousemove', dragMove, { passive: false });
         document.addEventListener('mouseup', dragEnd);
       }
     };
 
-    // ⭐️ 드래그 중 로직
     const dragMove = (e) => {
       if (!draggingElement) return;
       e.preventDefault();
-
-      // 모바일은 touches[0]에서, PC는 직접 clientY 추출
       const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
       const siblings = [...queueList.querySelectorAll('.queue-item:not(.dragging)')];
-      
       let nextSibling = siblings.find(sibling => {
         const rect = sibling.getBoundingClientRect();
         return clientY < rect.top + rect.height / 2;
@@ -289,12 +324,9 @@ function renderQueue() {
       queueList.insertBefore(draggingElement, nextSibling);
     };
 
-    // ⭐️ 드래그 끝 로직
     const dragEnd = (e) => {
       if (!draggingElement) return;
       draggingElement.classList.remove('dragging');
-
-      // PC 마우스용 전역 이벤트 해제
       if (e.type === 'mouseup') {
         document.removeEventListener('mousemove', dragMove);
         document.removeEventListener('mouseup', dragEnd);
@@ -302,31 +334,27 @@ function renderQueue() {
 
       const newQueue = [];
       let newCursor = -1;
-      
       const items = queueList.querySelectorAll('.queue-item');
       items.forEach((item, index) => {
         const oldPos = parseInt(item.dataset.pos);
         newQueue.push(customQueue[oldPos]);
-        
-        if (oldPos === queueCursor) {
-          newCursor = index;
-        }
+        if (oldPos === queueCursor) newCursor = index;
       });
 
       customQueue = newQueue;
       queueCursor = newCursor;
+      
+      // ⭐️ 셔플 중에 직접 드래그해서 위치를 바꿨다면?
+      // 원본 백업(originalQueue)은 유지하되, 이 섞인 상태를 유저의 '의도'로 존중
+      
       draggingElement = null;
       renderQueue(); 
     };
 
-    // 모바일 터치 이벤트 리스너
     dragHandle.addEventListener('touchstart', dragStart, { passive: false });
     dragHandle.addEventListener('touchmove', dragMove, { passive: false });
     dragHandle.addEventListener('touchend', dragEnd);
-
-    // PC 마우스 이벤트 리스너
     dragHandle.addEventListener('mousedown', dragStart);
-
     queueList.appendChild(qDiv);
   });
 }
@@ -334,6 +362,9 @@ function renderQueue() {
 clearQueueBtn.onclick = () => {
   customQueue = [];
   queueCursor = -1;
+  isShuffle = false; 
+  shuffleBtn.classList.remove('active');
+  originalQueue = [];
   pausePlayback();
   currentTitle.textContent = "재생 중인 곡이 없습니다";
   renderQueue();
@@ -377,6 +408,11 @@ function renderTracks(trackArray) {
     
     trackDiv.querySelector('.track-info').onclick = () => {
       const realIndex = tracks.findIndex(t => t.title === track.title);
+      // ⭐️ 메인에서 누르면 셔플 모드 강제 해제 (기성 앱 국룰)
+      isShuffle = false;
+      shuffleBtn.classList.remove('active');
+      originalQueue = [];
+
       customQueue = [realIndex]; 
       queueCursor = 0; 
       loadAndPlay(customQueue[queueCursor]);
@@ -435,10 +471,7 @@ function pausePlayback() {
 
 function updateMediaSession(track) {
   if ('mediaSession' in navigator) {
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.title,
-      artist: '메이플스토리 BGM',
-    });
+    navigator.mediaSession.metadata = new MediaMetadata({ title: track.title, artist: '메이플스토리 BGM' });
     navigator.mediaSession.setActionHandler('play', async () => {
       keepAudioAlive();
       const saveTime = currentAudio.currentTime;
@@ -470,10 +503,9 @@ function togglePlay() {
 searchInput.addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase();
   const filteredTracks = tracks.filter(track => {
-    const matchTitle = track.title.toLowerCase().includes(query);
-    const matchDesc = track.description.toLowerCase().includes(query);
-    const matchTag = track.tags.some(tag => tag.toLowerCase().includes(query));
-    return matchTitle || matchDesc || matchTag;
+    return track.title.toLowerCase().includes(query) || 
+           track.description.toLowerCase().includes(query) || 
+           track.tags.some(tag => tag.toLowerCase().includes(query));
   });
   renderTracks(filteredTracks);
 });
@@ -482,60 +514,37 @@ playBtn.onclick = togglePlay;
 prevBtn.onclick = playPrev;
 nextBtn.onclick = playNext;
 
-// 플레이리스트를 저장할 변수 (배열 안에 객체가 들어가는 구조)
-let myPlaylists = [];
-
-// 요소 가져오기
+// 플레이리스트 LocalStorage 기능
 const playlistContainer = document.getElementById('playlistContainer');
 const createNewPlaylistBtn = document.getElementById('createNewPlaylistBtn');
 
-// 1. LocalStorage에서 플레이리스트 데이터 불러오기
 function loadPlaylists() {
   const savedData = localStorage.getItem('maple_playlists');
-  if (savedData) {
-    myPlaylists = JSON.parse(savedData);
-  } else {
-    myPlaylists = [];
-  }
+  myPlaylists = savedData ? JSON.parse(savedData) : [];
   renderPlaylists();
 }
 
-// 2. LocalStorage에 데이터 저장하기 (바뀔 때마다 실행)
 function savePlaylists() {
   localStorage.setItem('maple_playlists', JSON.stringify(myPlaylists));
 }
 
-// 3. 새 플레이리스트 만들기 버튼 클릭 시
 createNewPlaylistBtn.onclick = () => {
   const title = prompt("새 플레이리스트의 이름을 입력하세요:");
-  
-  if (title === null || title.trim() === "") return; // 취소하거나 빈 칸이면 무시
-
-  // 새로운 폴더 객체 생성 (곡은 아직 비어있음)
-  const newPlaylist = {
-    id: Date.now(), // 고유 번호 (생성 시간 기준)
-    name: title.trim(),
-    tracks: [] // 곡의 Index 번호를 저장할 배열
-  };
-
-  myPlaylists.push(newPlaylist);
-  savePlaylists(); // 저장
-  renderPlaylists(); // 화면 다시 그리기
+  if (title === null || title.trim() === "") return;
+  myPlaylists.push({ id: Date.now(), name: title.trim(), tracks: [] });
+  savePlaylists(); 
+  renderPlaylists(); 
 };
 
-// 4. 플레이리스트 목록 화면에 그리기
 function renderPlaylists() {
   playlistContainer.innerHTML = '';
-
   if (myPlaylists.length === 0) {
     playlistContainer.innerHTML = '<p style="text-align:center; color:#888; padding:30px;">만들어진 플레이리스트가 없습니다.<br>위 버튼을 눌러 새 플레이리스트를 만들어보세요!</p>';
     return;
   }
-
   myPlaylists.forEach((playlist, index) => {
     const plDiv = document.createElement('div');
     plDiv.className = 'playlist-item';
-
     plDiv.innerHTML = `
       <div class="track-info" style="display:flex; align-items:center;">
         <span style="font-size:24px; margin-right:15px;">📁</span>
@@ -546,40 +555,27 @@ function renderPlaylists() {
       </div>
       <button class="option-btn" style="color:red; font-size:14px;">삭제</button>
     `;
-
-    // ⭐️ 1. 폴더를 클릭하면 상세 화면으로 이동
-    plDiv.querySelector('.track-info').onclick = () => {
-      openPlaylistDetail(index);
-    };
-
+    plDiv.querySelector('.track-info').onclick = () => openPlaylistDetail(index);
     plDiv.querySelector('.option-btn').onclick = (e) => {
       e.stopPropagation();
-      const confirmDelete = confirm(`'${playlist.name}' 플레이리스트를 정말 삭제할까요?`);
-      if (confirmDelete) {
+      if (confirm(`'${playlist.name}' 플레이리스트를 정말 삭제할까요?`)) {
         myPlaylists.splice(index, 1); 
         savePlaylists(); 
         renderPlaylists(); 
       }
     };
-
     playlistContainer.appendChild(plDiv);
   });
 }
 
-// ⭐️ 2. 상세 화면 띄우기 함수 (새로 추가)
 function openPlaylistDetail(playlistIndex) {
   const playlist = myPlaylists[playlistIndex];
-  
-  // 화면 전환
   playlistView.classList.remove('active');
   playlistDetailView.classList.add('active');
-
-  // 헤더 정보 채우기
   detailTitle.textContent = playlist.name;
   detailCount.textContent = `${playlist.tracks.length}곡`;
-
-  // 곡 목록 그리기
   detailTrackList.innerHTML = '';
+  
   if (playlist.tracks.length === 0) {
     detailTrackList.innerHTML = '<p style="text-align:center; padding:30px; color:#888;">이 플레이리스트는 비어있습니다.</p>';
   } else {
@@ -594,45 +590,41 @@ function openPlaylistDetail(playlistIndex) {
         </div>
         <button class="option-btn">⋮</button>
       `;
-
-      // ⭐️ 3. 플레이리스트 안에서 개별 곡을 눌렀을 때
-      // 네 요구사항: 기존 대기열 싹 날리고 플리 전체 복사 후, 누른 곡부터 재생!
       trackDiv.querySelector('.track-info').onclick = () => {
-        customQueue = [...playlist.tracks]; // 배열 복사
-        queueCursor = playlist.tracks.indexOf(trackIndex); // 누른 곡의 위치 찾기
+        // ⭐️ 플리에서 누를 때도 셔플 강제 해제
+        isShuffle = false;
+        shuffleBtn.classList.remove('active');
+        originalQueue = [];
+
+        customQueue = [...playlist.tracks]; 
+        queueCursor = playlist.tracks.indexOf(trackIndex); 
         loadAndPlay(customQueue[queueCursor]);
-        renderQueue(); // 바텀 시트 대기열 갱신
+        renderQueue(); 
       };
-
-      // 개별 곡 옵션 메뉴 (삭제/태그 편집 등 띄우기)
-      trackDiv.querySelector('.option-btn').onclick = () => {
-        openOptionMenu(trackIndex);
-      };
-
+      trackDiv.querySelector('.option-btn').onclick = () => openOptionMenu(trackIndex);
       detailTrackList.appendChild(trackDiv);
     });
   }
 
-  // ⭐️ 4. 커다란 [전체 재생] 버튼 로직
   playAllBtn.onclick = () => {
-    if (playlist.tracks.length === 0) {
-      alert("재생할 곡이 없습니다.");
-      return;
-    }
-    customQueue = [...playlist.tracks]; // 대기열을 플리 곡들로 덮어씌움
-    queueCursor = 0; // 1번 곡부터 시작
+    if (playlist.tracks.length === 0) { alert("재생할 곡이 없습니다."); return; }
+    
+    // ⭐️ 전체 재생 시에도 셔플 해제
+    isShuffle = false;
+    shuffleBtn.classList.remove('active');
+    originalQueue = [];
+
+    customQueue = [...playlist.tracks]; 
+    queueCursor = 0; 
     loadAndPlay(customQueue[queueCursor]);
     renderQueue();
   };
 }
 
-// 뒤로 가기 버튼 로직
 backToPlaylistBtn.onclick = () => {
   playlistDetailView.classList.remove('active');
   playlistView.classList.add('active');
 };
 
-// 앱 시작 시 플레이리스트 데이터도 같이 불러오기
 loadPlaylists();
-
 loadTracks();
