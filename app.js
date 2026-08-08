@@ -589,3 +589,82 @@ backToPlaylistBtn.onclick = () => { playlistDetailView.classList.remove('active'
 loadCustomTags();
 loadPlaylists();
 loadTracks();
+
+// --- ⭐️ 데이터 백업 및 복원 (설정) 기능 로직 ---
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsOverlay = document.getElementById('settingsOverlay');
+const settingsModal = document.getElementById('settingsModal');
+const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+const backupDataBtn = document.getElementById('backupDataBtn');
+const restoreDataBtn = document.getElementById('restoreDataBtn');
+const restoreFileInput = document.getElementById('restoreFileInput');
+
+// 팝업 열고 닫기
+settingsBtn.onclick = () => {
+  settingsOverlay.classList.remove('hidden');
+  settingsModal.classList.remove('hidden');
+};
+const closeSettings = () => {
+  settingsOverlay.classList.add('hidden');
+  settingsModal.classList.add('hidden');
+};
+settingsCloseBtn.onclick = closeSettings;
+settingsOverlay.onclick = closeSettings;
+
+// 1. 데이터 백업 (다운로드)
+backupDataBtn.onclick = () => {
+  // 우리가 만든 두 개의 저장소를 하나의 객체로 묶음
+  const backupData = {
+    maple_playlists: myPlaylists,
+    maple_tags: customTags
+  };
+  
+  const jsonString = JSON.stringify(backupData, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  
+  // 백업 파일명에 오늘 날짜 추가 (예: MaplePlayer_Backup_20240315.json)
+  const date = new Date();
+  const dateString = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}`;
+  a.download = `MaplePlayer_Backup_${dateString}.json`;
+  
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// 2. 데이터 복원 (파일 불러오기)
+restoreDataBtn.onclick = () => {
+  restoreFileInput.click(); // 숨겨둔 file input 강제 클릭
+};
+
+restoreFileInput.onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    try {
+      const importedData = JSON.parse(event.target.result);
+      
+      // 파일 형식이 맞는지 검증
+      if (importedData.maple_playlists !== undefined && importedData.maple_tags !== undefined) {
+        localStorage.setItem('maple_playlists', JSON.stringify(importedData.maple_playlists));
+        localStorage.setItem('maple_tags', JSON.stringify(importedData.maple_tags));
+        
+        alert("🎉 데이터 복원이 완료되었습니다!\n적용을 위해 앱을 새로고침합니다.");
+        location.reload(); // 새로고침해서 데이터를 화면에 싹 덮어씌움
+      } else {
+        alert("올바른 Maple Player 백업 파일이 아닙니다.");
+      }
+    } catch (err) {
+      alert("파일을 읽는 중 오류가 발생했습니다.");
+    }
+  };
+  reader.readAsText(file);
+  
+  // 같은 파일을 다시 선택할 수 있도록 input 초기화
+  restoreFileInput.value = '';
+};

@@ -371,3 +371,42 @@ header h1 {
 .track-text-wrap h4 { margin: 0 0 5px 0; font-size: 14px; font-weight: normal; color: #eee; }
 .track-info .track-text-wrap p { margin: 0; font-size: 12px; color: #666; }
 .queue-info .track-text-wrap p { margin: 0; font-size: 12px; color: #888; }
+
+/* --- ⭐️ 설정 버튼 및 팝업 디자인 --- */
+.header-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.header-title-row h1 {
+  margin: 0; /* 기존 여백 제거 */
+}
+.icon-btn {
+  background: none; border: none; font-size: 24px; cursor: pointer; padding: 5px;
+}
+
+/* 화면 가운데에 뜨는 설정 모달 창 */
+#settingsOverlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); z-index: 3000; opacity: 1; transition: opacity 0.2s;
+}
+#settingsOverlay.hidden { opacity: 0; pointer-events: none; }
+
+#settingsModal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1);
+  width: 85%; max-width: 320px; background: #fff; border-radius: 16px; z-index: 3001;
+  transition: transform 0.2s, opacity 0.2s; opacity: 1;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+#settingsModal.hidden { transform: translate(-50%, -50%) scale(0.9); opacity: 0; pointer-events: none; }
+
+.settings-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #eee; }
+.settings-header h3 { margin: 0; font-size: 18px; color: #333; }
+#settingsCloseBtn { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; }
+
+.settings-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.settings-action-btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+.btn-backup { background: #ff7f00; color: white; }
+.btn-restore { background: #eee; color: #333; }
+.settings-info { padding: 0 20px 20px 20px; margin: 0; font-size: 12px; color: #888; line-height: 1.4; word-break: keep-all; }
