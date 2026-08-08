@@ -331,3 +331,43 @@ header h1 {
   background: #ff7f00; border: none; border-radius: 10px; font-size: 15px;
   font-weight: bold; color: white; cursor: pointer;
 }
+
+/* --- ⭐️ 지역 아이콘 및 레이아웃 업데이트 --- */
+.track-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0; /* 아이콘 크기 찌그러짐 방지 */
+}
+
+/* 기존 info 영역들을 가로 정렬(Flex)로 덮어쓰기 */
+.track-info, .queue-info {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  cursor: pointer;
+  overflow: hidden; 
+}
+
+/* 텍스트 영역을 감싸는 래퍼 */
+.track-text-wrap {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 제목 및 설명이 길면 ...으로 예쁘게 잘리도록 처리 */
+.track-text-wrap h3, 
+.track-text-wrap h4, 
+.track-text-wrap p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 글자 크기 및 여백 재설정 */
+.track-text-wrap h3 { margin: 0 0 5px 0; font-size: 16px; }
+.track-text-wrap h4 { margin: 0 0 5px 0; font-size: 14px; font-weight: normal; color: #eee; }
+.track-info .track-text-wrap p { margin: 0; font-size: 12px; color: #666; }
+.queue-info .track-text-wrap p { margin: 0; font-size: 12px; color: #888; }

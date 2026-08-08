@@ -176,8 +176,19 @@ function openOptionMenu(trackIndex, queuePos = -1) {
   selectedTrackIndex = trackIndex;
   selectedQueuePos = queuePos;
   const track = tracks[trackIndex];
+  
   optionTitle.textContent = track.title;
   optionDesc.textContent = track.description;
+  
+  // ⭐️ 옵션 팝업에 아이콘 띄우기
+  const optionIcon = document.getElementById('optionIcon');
+  if (track.icon) {
+    optionIcon.src = `assets/icon/${track.icon}`;
+    optionIcon.style.display = 'block';
+  } else {
+    optionIcon.style.display = 'none';
+  }
+
   optRemoveQueue.style.display = queuePos === -1 ? 'none' : 'block';
   optionOverlay.classList.remove('hidden');
   optionMenu.classList.remove('hidden');
@@ -354,35 +365,29 @@ function renderQueue() {
     qDiv.className = 'queue-item';
     qDiv.dataset.pos = queuePosition; 
     if (queuePosition === queueCursor) qDiv.classList.add('active');
+
+    // ⭐️ 아이콘 추가
+    const iconHTML = track.icon ? `<img src="assets/icon/${track.icon}" class="track-icon" onerror="this.style.display='none'">` : '';
+
     qDiv.innerHTML = `
       <div class="queue-info">
-        <h4>${track.title}</h4>
-        <p>${track.description}</p>
+        ${iconHTML}
+        <div class="track-text-wrap">
+          <h4>${track.title}</h4>
+          <p>${track.description}</p>
+        </div>
       </div>
       <button class="option-btn">⋮</button>
       <div class="drag-handle">≡</div>
     `;
     qDiv.querySelector('.queue-info').onclick = () => jumpToQueueTrack(queuePosition);
     qDiv.querySelector('.option-btn').onclick = () => openOptionMenu(trackIndex, queuePosition);
+    
+    // 드래그 로직 유지...
     const dragHandle = qDiv.querySelector('.drag-handle');
-    const dragStart = (e) => {
-      e.preventDefault(); draggingElement = qDiv; draggingElement.classList.add('dragging');
-      if (e.type === 'mousedown') { document.addEventListener('mousemove', dragMove, { passive: false }); document.addEventListener('mouseup', dragEnd); }
-    };
-    const dragMove = (e) => {
-      if (!draggingElement) return; e.preventDefault();
-      const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-      const siblings = [...queueList.querySelectorAll('.queue-item:not(.dragging)')];
-      let nextSibling = siblings.find(sibling => { const rect = sibling.getBoundingClientRect(); return clientY < rect.top + rect.height / 2; });
-      queueList.insertBefore(draggingElement, nextSibling);
-    };
-    const dragEnd = (e) => {
-      if (!draggingElement) return; draggingElement.classList.remove('dragging');
-      if (e.type === 'mouseup') { document.removeEventListener('mousemove', dragMove); document.removeEventListener('mouseup', dragEnd); }
-      const newQueue = []; let newCursor = -1; const items = queueList.querySelectorAll('.queue-item');
-      items.forEach((item, index) => { const oldPos = parseInt(item.dataset.pos); newQueue.push(customQueue[oldPos]); if (oldPos === queueCursor) newCursor = index; });
-      customQueue = newQueue; queueCursor = newCursor; draggingElement = null; renderQueue(); 
-    };
+    const dragStart = (e) => { e.preventDefault(); draggingElement = qDiv; draggingElement.classList.add('dragging'); if (e.type === 'mousedown') { document.addEventListener('mousemove', dragMove, { passive: false }); document.addEventListener('mouseup', dragEnd); } };
+    const dragMove = (e) => { if (!draggingElement) return; e.preventDefault(); const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY; const siblings = [...queueList.querySelectorAll('.queue-item:not(.dragging)')]; let nextSibling = siblings.find(sibling => { const rect = sibling.getBoundingClientRect(); return clientY < rect.top + rect.height / 2; }); queueList.insertBefore(draggingElement, nextSibling); };
+    const dragEnd = (e) => { if (!draggingElement) return; draggingElement.classList.remove('dragging'); if (e.type === 'mouseup') { document.removeEventListener('mousemove', dragMove); document.removeEventListener('mouseup', dragEnd); } const newQueue = []; let newCursor = -1; const items = queueList.querySelectorAll('.queue-item'); items.forEach((item, index) => { const oldPos = parseInt(item.dataset.pos); newQueue.push(customQueue[oldPos]); if (oldPos === queueCursor) newCursor = index; }); customQueue = newQueue; queueCursor = newCursor; draggingElement = null; renderQueue(); };
     dragHandle.addEventListener('touchstart', dragStart, { passive: false }); dragHandle.addEventListener('touchmove', dragMove, { passive: false }); dragHandle.addEventListener('touchend', dragEnd); dragHandle.addEventListener('mousedown', dragStart);
     queueList.appendChild(qDiv);
   });
@@ -412,35 +417,27 @@ function renderTracks(trackArray) {
     const trackDiv = document.createElement('div');
     trackDiv.className = 'track-item';
     
-    // 1. 기본 태그 뱃지 만들기 (회색)
-    let tagsHTML = track.tags.map(tag => 
-      `<span class="tag-badge" style="background-color: #aaa;" data-tag="${tag}">${tag}</span>`
-    ).join('');
-
-    // 2. 이 곡이 속한 내 커스텀 태그 뱃지 만들기 (지정한 색상)
+    let tagsHTML = track.tags.map(tag => `<span class="tag-badge" style="background-color: #aaa;" data-tag="${tag}">${tag}</span>`).join('');
     const myTags = customTags.filter(ct => ct.tracks.includes(track.title));
-    myTags.forEach(ct => {
-      tagsHTML += `<span class="tag-badge" style="background-color: ${ct.color};" data-tag="${ct.name}">${ct.name}</span>`;
-    });
+    myTags.forEach(ct => { tagsHTML += `<span class="tag-badge" style="background-color: ${ct.color};" data-tag="${ct.name}">${ct.name}</span>`; });
+
+    // ⭐️ 아이콘 이미지 태그 생성
+    const iconHTML = track.icon ? `<img src="assets/icon/${track.icon}" class="track-icon" onerror="this.style.display='none'">` : '';
 
     trackDiv.innerHTML = `
       <div class="track-info">
-        <h3>${track.title}</h3>
-        <p>${track.description}</p>
-        <div class="track-tags">${tagsHTML}</div>
+        ${iconHTML}
+        <div class="track-text-wrap">
+          <h3>${track.title}</h3>
+          <p>${track.description}</p>
+          <div class="track-tags">${tagsHTML}</div>
+        </div>
       </div>
       <button class="option-btn">⋮</button>
     `;
     
-    // 3. 태그를 클릭했을 때 검색창으로 점프!
     trackDiv.querySelectorAll('.tag-badge').forEach(badge => {
-      badge.onclick = (e) => {
-        e.stopPropagation(); // 곡 재생 방지
-        tabAll.click(); // 무조건 전체 탭으로 이동해서 필터링
-        searchInput.value = badge.dataset.tag;
-        applySearch(); // 즉시 검색 실행
-        window.scrollTo(0, 0); // 화면 맨 위로
-      };
+      badge.onclick = (e) => { e.stopPropagation(); tabAll.click(); searchInput.value = badge.dataset.tag; applySearch(); window.scrollTo(0, 0); };
     });
 
     trackDiv.querySelector('.track-info').onclick = () => {
@@ -454,8 +451,23 @@ function renderTracks(trackArray) {
 }
 
 function loadAndPlay(index) {
-  const track = tracks[index]; keepAudioAlive(); currentAudio.src = `assets/music/${track.filename}`;
-  currentAudio.play().catch(e => console.error("재생 실패:", e)); currentTitle.textContent = track.title; updateMediaSession(track);
+  const track = tracks[index]; 
+  keepAudioAlive(); 
+  currentAudio.src = `assets/music/${track.filename}`;
+  currentAudio.play().catch(e => console.error("재생 실패:", e)); 
+  
+  currentTitle.textContent = track.title; 
+  
+  // ⭐️ 하단 재생 바에 아이콘 띄우기
+  const currentIcon = document.getElementById('currentIcon');
+  if (track.icon) {
+    currentIcon.src = `assets/icon/${track.icon}`;
+    currentIcon.style.display = 'block';
+  } else {
+    currentIcon.style.display = 'none';
+  }
+
+  updateMediaSession(track);
 }
 
 function playNext() {
@@ -531,36 +543,32 @@ function openPlaylistDetail(playlistIndex) {
     playlist.tracks.forEach((trackIndex) => {
       const track = tracks[trackIndex]; const trackDiv = document.createElement('div'); trackDiv.className = 'track-item';
       
-      // ⭐️ 상세 화면에서도 뱃지 출력 & 클릭 검색 지원!
       let tagsHTML = track.tags.map(tag => `<span class="tag-badge" style="background-color: #aaa;" data-tag="${tag}">${tag}</span>`).join('');
       const myTags = customTags.filter(ct => ct.tracks.includes(track.title));
       myTags.forEach(ct => { tagsHTML += `<span class="tag-badge" style="background-color: ${ct.color};" data-tag="${ct.name}">${ct.name}</span>`; });
 
+      // ⭐️ 아이콘 추가
+      const iconHTML = track.icon ? `<img src="assets/icon/${track.icon}" class="track-icon" onerror="this.style.display='none'">` : '';
+
       trackDiv.innerHTML = `
         <div class="track-info">
-          <h3>${track.title}</h3><p>${track.description}</p>
-          <div class="track-tags">${tagsHTML}</div>
+          ${iconHTML}
+          <div class="track-text-wrap">
+            <h3>${track.title}</h3>
+            <p>${track.description}</p>
+            <div class="track-tags">${tagsHTML}</div>
+          </div>
         </div>
         <button class="option-btn">⋮</button>
       `;
 
-      trackDiv.querySelectorAll('.tag-badge').forEach(badge => {
-        badge.onclick = (e) => { e.stopPropagation(); tabAll.click(); searchInput.value = badge.dataset.tag; applySearch(); window.scrollTo(0, 0); };
-      });
-
-      trackDiv.querySelector('.track-info').onclick = () => {
-        isShuffle = false; shuffleBtn.classList.remove('active'); originalQueue = [];
-        customQueue = [...playlist.tracks]; queueCursor = playlist.tracks.indexOf(trackIndex); loadAndPlay(customQueue[queueCursor]); renderQueue(); 
-      };
+      trackDiv.querySelectorAll('.tag-badge').forEach(badge => { badge.onclick = (e) => { e.stopPropagation(); tabAll.click(); searchInput.value = badge.dataset.tag; applySearch(); window.scrollTo(0, 0); }; });
+      trackDiv.querySelector('.track-info').onclick = () => { isShuffle = false; shuffleBtn.classList.remove('active'); originalQueue = []; customQueue = [...playlist.tracks]; queueCursor = playlist.tracks.indexOf(trackIndex); loadAndPlay(customQueue[queueCursor]); renderQueue(); };
       trackDiv.querySelector('.option-btn').onclick = () => openOptionMenu(trackIndex);
       detailTrackList.appendChild(trackDiv);
     });
   }
-  playAllBtn.onclick = () => {
-    if (playlist.tracks.length === 0) { alert("재생할 곡이 없습니다."); return; }
-    isShuffle = false; shuffleBtn.classList.remove('active'); originalQueue = [];
-    customQueue = [...playlist.tracks]; queueCursor = 0; loadAndPlay(customQueue[queueCursor]); renderQueue();
-  };
+  playAllBtn.onclick = () => { if (playlist.tracks.length === 0) { alert("재생할 곡이 없습니다."); return; } isShuffle = false; shuffleBtn.classList.remove('active'); originalQueue = []; customQueue = [...playlist.tracks]; queueCursor = 0; loadAndPlay(customQueue[queueCursor]); renderQueue(); };
 }
 
 backToPlaylistBtn.onclick = () => { playlistDetailView.classList.remove('active'); playlistView.classList.add('active'); };
