@@ -96,19 +96,32 @@ function saveCustomTags() {
 
 // ⭐️ 향상된 검색 함수 (태그 장부까지 뒤짐)
 function applySearch() {
-  const query = searchInput.value.toLowerCase();
+  // 유저가 입력한 검색어에서 공백(\s)과 콜론(:)을 모두 제거
+  const rawQuery = searchInput.value.toLowerCase();
+  const cleanQuery = rawQuery.replace(/[\s:]/g, '');
+
   const filteredTracks = tracks.filter(track => {
-    const matchTitle = track.title.toLowerCase().includes(query);
-    const matchDesc = track.description.toLowerCase().includes(query);
-    const matchBaseTag = track.tags.some(tag => tag.toLowerCase().includes(query));
+    // 원본 데이터(제목, 설명)에서도 공백과 콜론을 제거 후 비교
+    const cleanTitle = track.title.toLowerCase().replace(/[\s:]/g, '');
+    const cleanDesc = track.description.toLowerCase().replace(/[\s:]/g, '');
     
-    // 이 곡이 속한 커스텀 태그 중 검색어와 일치하는 게 있는지 확인!
+    // 기본 태그도 띄어쓰기 무시
+    const matchBaseTag = track.tags.some(tag => 
+      tag.toLowerCase().replace(/[\s:]/g, '').includes(cleanQuery)
+    );
+    
+    // 커스텀 태그도 띄어쓰기 무시
     const matchCustomTag = customTags.some(customTag => 
-      customTag.tracks.includes(track.title) && customTag.name.toLowerCase().includes(query)
+      customTag.tracks.includes(track.title) && 
+      customTag.name.toLowerCase().replace(/[\s:]/g, '').includes(cleanQuery)
     );
 
-    return matchTitle || matchDesc || matchBaseTag || matchCustomTag;
+    return cleanTitle.includes(cleanQuery) || 
+           cleanDesc.includes(cleanQuery) || 
+           matchBaseTag || 
+           matchCustomTag;
   });
+  
   renderTracks(filteredTracks);
 }
 
