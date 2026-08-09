@@ -501,10 +501,39 @@ function pausePlayback() { currentAudio.pause(); currentAudio.currentTime = 0; p
 
 function updateMediaSession(track) {
   if ('mediaSession' in navigator) {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: track.title, artist: '메이플스토리 BGM' });
-    navigator.mediaSession.setActionHandler('play', async () => { keepAudioAlive(); const saveTime = currentAudio.currentTime; try { await currentAudio.play(); currentAudio.currentTime = saveTime; } catch (error) { currentAudio.load(); currentAudio.currentTime = saveTime; currentAudio.play(); } });
+    // ⭐️ 잠금화면 위젯(앨범 커버)에 띄울 아이콘 이미지 경로 설정
+    let artworkArray = [];
+    if (track.icon) {
+      // 모바일 OS가 이미지를 확실하게 불러오도록 절대 경로(Absolute URL)로 변환
+      const iconAbsoluteUrl = new URL(`assets/icon/${track.icon}`, window.location.href).href;
+      artworkArray = [
+        { src: iconAbsoluteUrl, sizes: '256x256', type: 'image/png' },
+        { src: iconAbsoluteUrl, sizes: '512x512', type: 'image/png' }
+      ];
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({ 
+      title: track.title, 
+      artist: track.description || '메이플스토리 BGM', // ⭐️ 아티스트 란에 곡 설명 넣기! (설명이 없으면 기본값)
+      artwork: artworkArray // ⭐️ 아이콘(앨범 커버) 연결!
+    });
+
+    // ⭐️ 아래는 기존에 잡아둔 오류 방지 및 재생 컨트롤 로직 (건드리지 않음!)
+    navigator.mediaSession.setActionHandler('play', async () => { 
+      keepAudioAlive(); 
+      const saveTime = currentAudio.currentTime; 
+      try { 
+        await currentAudio.play(); 
+        currentAudio.currentTime = saveTime; 
+      } catch (error) { 
+        currentAudio.load(); 
+        currentAudio.currentTime = saveTime; 
+        currentAudio.play(); 
+      } 
+    });
     navigator.mediaSession.setActionHandler('pause', () => currentAudio.pause());
-    navigator.mediaSession.setActionHandler('previoustrack', playPrev); navigator.mediaSession.setActionHandler('nexttrack', playNext);
+    navigator.mediaSession.setActionHandler('previoustrack', playPrev); 
+    navigator.mediaSession.setActionHandler('nexttrack', playNext);
   }
 }
 
