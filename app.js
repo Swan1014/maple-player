@@ -30,7 +30,8 @@ const optionDesc = document.getElementById('optionDesc');
 const optionCloseBtn = document.getElementById('optionCloseBtn');
 const optPlayNext = document.getElementById('optPlayNext');
 const optPlayLast = document.getElementById('optPlayLast');
-const optRemoveQueue = document.getElementById('optRemoveQueue'); 
+const optRemoveQueue = document.getElementById('optRemoveQueue');
+const optRemoveFromPlaylist = document.getElementById('optRemoveFromPlaylist');
 const optAddPlaylist = document.getElementById('optAddPlaylist');
 const optEditTag = document.getElementById('optEditTag');
 
@@ -48,6 +49,15 @@ const newTagColor = document.getElementById('newTagColor');
 const newTagName = document.getElementById('newTagName');
 const createNewTagBtn = document.getElementById('createNewTagBtn');
 const tagEditCloseBtn = document.getElementById('tagEditCloseBtn');
+
+const createPlaylistDialog = document.getElementById('createPlaylistDialog');
+const createPlaylistInput = document.getElementById('createPlaylistInput');
+const createPlaylistCancelBtn = document.getElementById('createPlaylistCancelBtn');
+const createPlaylistConfirmBtn = document.getElementById('createPlaylistConfirmBtn');
+
+const restoreDialog = document.getElementById('restoreDialog');
+const restoreCancelBtn = document.getElementById('restoreCancelBtn');
+const restoreConfirmBtn = document.getElementById('restoreConfirmBtn');
 
 let tracks = [];
 let customQueue = []; 
@@ -185,7 +195,7 @@ currentAudio.addEventListener('ended', () => {
 
 nowPlayingArea.onclick = () => { bottomSheet.classList.toggle('expanded'); };
 
-function openOptionMenu(trackIndex, queuePos = -1) {
+function openOptionMenu(trackIndex, queuePos = -1, isFromPlaylist = false) {
   selectedTrackIndex = trackIndex;
   selectedQueuePos = queuePos;
   const track = tracks[trackIndex];
@@ -193,7 +203,6 @@ function openOptionMenu(trackIndex, queuePos = -1) {
   optionTitle.textContent = track.title;
   optionDesc.textContent = track.description;
   
-  // ⭐️ 옵션 팝업에 아이콘 띄우기
   const optionIcon = document.getElementById('optionIcon');
   if (track.icon) {
     optionIcon.src = `assets/icon/${track.icon}`;
@@ -202,7 +211,10 @@ function openOptionMenu(trackIndex, queuePos = -1) {
     optionIcon.style.display = 'none';
   }
 
+  // ⭐️ 상황에 맞게 버튼 숨기고 켜기
   optRemoveQueue.style.display = queuePos === -1 ? 'none' : 'block';
+  optRemoveFromPlaylist.style.display = isFromPlaylist ? 'block' : 'none';
+
   optionOverlay.classList.remove('hidden');
   optionMenu.classList.remove('hidden');
 }
@@ -239,7 +251,10 @@ function closeTagEditMenu() {
   }
 }
 tagEditOverlay.onclick = closeTagEditMenu;
-tagEditCloseBtn.onclick = closeTagEditMenu;
+tagEditCloseBtn.onclick = () => {
+  closeTagEditMenu();
+  showToast("태그 편집이 완료되었습니다.");
+};
 
 // ⭐️ 태그 리스트 그리기
 function renderTagCheckList() {
@@ -313,6 +328,7 @@ optPlayNext.onclick = () => {
     } else { customQueue.splice(queueCursor + 1, 0, selectedTrackIndex); }
     if (isShuffle && originalQueue.length > 0) originalQueue.push(selectedTrackIndex); 
     renderQueue();
+    showToast("곡이 다음에 재생됩니다.");
   }
   closeOptionMenu();
 };
@@ -324,6 +340,7 @@ optPlayLast.onclick = () => {
     } else { customQueue.push(selectedTrackIndex); }
     if (isShuffle && originalQueue.length > 0) originalQueue.push(selectedTrackIndex); 
     renderQueue();
+    showToast("곡이 마지막에 재생됩니다.");
   }
   closeOptionMenu();
 };
@@ -349,21 +366,57 @@ optRemoveQueue.onclick = () => {
   closeOptionMenu();
 };
 
+optRemoveFromPlaylist.onclick = () => {
+  // 현재 열려있는 플레이리스트가 있고, 선택된 곡이 정상일 때만 실행
+  if (currentOpenedPlaylistIndex !== -1 && selectedTrackIndex !== -1) {
+    const playlist = myPlaylists[currentOpenedPlaylistIndex];
+    
+    // 플레이리스트 배열에서 해당 곡 번호를 찾아 삭제 (필터링)
+    playlist.tracks = playlist.tracks.filter(t => t !== selectedTrackIndex);
+    
+    savePlaylists(); // LocalStorage에 저장
+    
+    // 삭제된 후의 상태로 플레이리스트 상세 화면을 다시 그림!
+    openPlaylistDetail(currentOpenedPlaylistIndex);
+    
+    // 뒷배경에 있는 플레이리스트 목록(곡 수 표시)도 갱신
+    renderPlaylists();
+    showToast(`'${playlist.name}'에서 곡이 삭제되었습니다.`);
+  }
+  closeOptionMenu(); // 팝업 닫기
+};
+
+// ⭐️ 플레이리스트에 추가 기능 (토스트 알림으로 업그레이드!)
 optAddPlaylist.onclick = () => {
   if (selectedTrackIndex === -1) return;
   closeOptionMenu();
-  if (myPlaylists.length === 0) { alert("만들어진 플레이리스트가 없습니다. [내 플레이리스트] 탭에서 먼저 만들어주세요!"); return; }
+  
+  if (myPlaylists.length === 0) { 
+    showToast("만들어진 플레이리스트가 없습니다."); // alert -> showToast
+    return; 
+  }
+  
   playlistSelectList.innerHTML = '';
   myPlaylists.forEach((playlist) => {
     const li = document.createElement('li');
     li.textContent = `📁 ${playlist.name} (${playlist.tracks.length}곡)`;
+    
     li.onclick = () => {
-      if (playlist.tracks.includes(selectedTrackIndex)) { alert("이미 이 플레이리스트에 들어있는 곡입니다."); } 
-      else { playlist.tracks.push(selectedTrackIndex); savePlaylists(); renderPlaylists(); alert(`'${playlist.name}'에 곡이 추가되었습니다!`); }
+      if (playlist.tracks.includes(selectedTrackIndex)) { 
+        showToast("이미 이 플레이리스트에 들어있는 곡입니다."); // alert -> showToast
+      } else { 
+        playlist.tracks.push(selectedTrackIndex); 
+        savePlaylists(); 
+        renderPlaylists(); 
+        // ⭐️ 기본 팝업(alert) 대신 우리가 만든 예쁜 토스트 팝업 띄우기!
+        showToast(`'${playlist.name}'에 곡이 추가되었습니다.`); 
+      }
       closePlaylistSelectMenu();
     };
+    
     playlistSelectList.appendChild(li);
   });
+  
   playlistSelectOverlay.classList.remove('hidden');
   playlistSelectMenu.classList.remove('hidden');
 };
@@ -548,28 +601,55 @@ function loadPlaylists() { const savedData = localStorage.getItem('maple_playlis
 function savePlaylists() { localStorage.setItem('maple_playlists', JSON.stringify(myPlaylists)); }
 
 createNewPlaylistBtn.onclick = () => {
-  const title = prompt("새 플레이리스트의 이름을 입력하세요:");
-  if (title === null || title.trim() === "") return;
-  myPlaylists.push({ id: Date.now(), name: title.trim(), tracks: [] });
-  savePlaylists(); renderPlaylists(); 
+  createPlaylistInput.value = ''; // 텍스트창 비우기
+  customDialogOverlay.classList.remove('hidden');
+  createPlaylistDialog.classList.remove('hidden');
+  setTimeout(() => createPlaylistInput.focus(), 100); // 텍스트창 자동 포커스
+};
+
+createPlaylistConfirmBtn.onclick = () => {
+  const title = createPlaylistInput.value.trim();
+  if (title !== "") {
+    myPlaylists.push({ id: Date.now(), name: title, tracks: [] });
+    savePlaylists(); 
+    renderPlaylists(); 
+    showToast("플레이리스트가 생성되었습니다."); // ⭐️ 토스트 띄우기!
+  }
+  closeCustomDialogs();
 };
 
 function renderPlaylists() {
   playlistContainer.innerHTML = '';
-  if (myPlaylists.length === 0) { playlistContainer.innerHTML = '<p style="text-align:center; color:#888; padding:30px;">만들어진 플레이리스트가 없습니다.</p>'; return; }
+  if (myPlaylists.length === 0) { 
+    playlistContainer.innerHTML = '<p style="text-align:center; color:#888; padding:30px;">만들어진 플레이리스트가 없습니다.<br>위 버튼을 눌러 새 플레이리스트를 만들어보세요!</p>'; 
+    return; 
+  }
   myPlaylists.forEach((playlist, index) => {
-    const plDiv = document.createElement('div'); plDiv.className = 'playlist-item';
+    const plDiv = document.createElement('div'); 
+    plDiv.className = 'playlist-item';
     plDiv.innerHTML = `
       <div class="track-info" style="display:flex; align-items:center;">
         <span style="font-size:24px; margin-right:15px;">📁</span>
-        <div><h3>${playlist.name}</h3><p>${playlist.tracks.length}곡</p></div>
+        <div>
+          <h3>${playlist.name}</h3>
+          <p>${playlist.tracks.length}곡</p>
+        </div>
       </div>
-      <button class="option-btn" style="color:red; font-size:14px;">삭제</button>
+      <!-- ⭐️ 빨간 삭제 버튼 대신 ⋮ 옵션 버튼으로 변경 -->
+      <button class="playlist-option-btn" style="background:none; border:none; font-size:20px; cursor:pointer; color:#888; padding: 10px;">⋮</button>
     `;
+    
     plDiv.querySelector('.track-info').onclick = () => openPlaylistDetail(index);
-    plDiv.querySelector('.option-btn').onclick = (e) => {
-      e.stopPropagation(); if (confirm(`'${playlist.name}' 플레이리스트를 정말 삭제할까요?`)) { myPlaylists.splice(index, 1); savePlaylists(); renderPlaylists(); }
+    
+    // ⭐️ ⋮ 버튼을 누르면 팝업 열기!
+    plDiv.querySelector('.playlist-option-btn').onclick = (e) => {
+      e.stopPropagation();
+      editingPlaylistIndex = index; // 지금 누른 폴더 번호 기억하기
+      document.getElementById('playlistEditTitle').textContent = playlist.name; // 팝업 제목을 폴더 이름으로!
+      document.getElementById('playlistEditOverlay').classList.remove('hidden');
+      document.getElementById('playlistEditModal').classList.remove('hidden');
     };
+    
     playlistContainer.appendChild(plDiv);
   });
 }
@@ -606,7 +686,7 @@ function openPlaylistDetail(playlistIndex) {
 
       trackDiv.querySelectorAll('.tag-badge').forEach(badge => { badge.onclick = (e) => { e.stopPropagation(); tabAll.click(); searchInput.value = badge.dataset.tag; applySearch(); window.scrollTo(0, 0); }; });
       trackDiv.querySelector('.track-info').onclick = () => { isShuffle = false; shuffleBtn.classList.remove('active'); originalQueue = []; customQueue = [...playlist.tracks]; queueCursor = playlist.tracks.indexOf(trackIndex); loadAndPlay(customQueue[queueCursor]); renderQueue(); };
-      trackDiv.querySelector('.option-btn').onclick = () => openOptionMenu(trackIndex);
+      trackDiv.querySelector('.option-btn').onclick = () => openOptionMenu(trackIndex, -1, true);
       detailTrackList.appendChild(trackDiv);
     });
   }
@@ -669,6 +749,9 @@ restoreDataBtn.onclick = () => {
   restoreFileInput.click(); // 숨겨둔 file input 강제 클릭
 };
 
+// ⭐️ 데이터 복원 로직 (안전 확인 팝업 추가)
+let pendingRestoreData = null; // 복원할 데이터를 임시 저장할 변수
+
 restoreFileInput.onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -678,22 +761,137 @@ restoreFileInput.onchange = (e) => {
     try {
       const importedData = JSON.parse(event.target.result);
       
-      // 파일 형식이 맞는지 검증
       if (importedData.maple_playlists !== undefined && importedData.maple_tags !== undefined) {
-        localStorage.setItem('maple_playlists', JSON.stringify(importedData.maple_playlists));
-        localStorage.setItem('maple_tags', JSON.stringify(importedData.maple_tags));
+        // 바로 복원하지 않고 일단 임시 보관!
+        pendingRestoreData = importedData; 
         
-        alert("🎉 데이터 복원이 완료되었습니다!\n적용을 위해 앱을 새로고침합니다.");
-        location.reload(); // 새로고침해서 데이터를 화면에 싹 덮어씌움
+        // 뒤에 있는 설정 창은 닫고, 복원 확인 팝업 띄우기
+        closeSettings();
+        customDialogOverlay.classList.remove('hidden');
+        restoreDialog.classList.remove('hidden');
       } else {
-        alert("올바른 Maple Player 백업 파일이 아닙니다.");
+        showToast("올바른 Maple Player 백업 파일이 아닙니다.");
       }
     } catch (err) {
-      alert("파일을 읽는 중 오류가 발생했습니다.");
+      showToast("파일을 읽는 중 오류가 발생했습니다.");
     }
   };
   reader.readAsText(file);
-  
-  // 같은 파일을 다시 선택할 수 있도록 input 초기화
-  restoreFileInput.value = '';
+  restoreFileInput.value = ''; // 동일 파일 재선택 가능하게 초기화
 };
+
+// 복원 확인 팝업에서 '확인 및 새로고침'을 눌렀을 때만 진짜 덮어쓰기!
+restoreConfirmBtn.onclick = () => {
+  if (pendingRestoreData) {
+    localStorage.setItem('maple_playlists', JSON.stringify(pendingRestoreData.maple_playlists));
+    localStorage.setItem('maple_tags', JSON.stringify(pendingRestoreData.maple_tags));
+    location.reload(); // 새로고침해서 적용 완료!
+  }
+};
+
+// --- ⭐️ 향상된 플레이리스트 편집(이름 변경/삭제) 기능 로직 ---
+const playlistEditOverlay = document.getElementById('playlistEditOverlay');
+const playlistEditModal = document.getElementById('playlistEditModal');
+const playlistEditCloseBtn = document.getElementById('playlistEditCloseBtn');
+const renamePlaylistBtn = document.getElementById('renamePlaylistBtn');
+const deletePlaylistBtn = document.getElementById('deletePlaylistBtn');
+
+// 새로 추가된 커스텀 모달 변수들
+const customDialogOverlay = document.getElementById('customDialogOverlay');
+const renameDialog = document.getElementById('renameDialog');
+const deleteDialog = document.getElementById('deleteDialog');
+const renameInput = document.getElementById('renameInput');
+const deleteConfirmText = document.getElementById('deleteConfirmText');
+
+const renameCancelBtn = document.getElementById('renameCancelBtn');
+const renameConfirmBtn = document.getElementById('renameConfirmBtn');
+const deleteCancelBtn = document.getElementById('deleteCancelBtn');
+const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+
+let editingPlaylistIndex = -1; 
+
+// 기존 옵션 모달 닫기
+const closePlaylistEdit = () => {
+  playlistEditOverlay.classList.add('hidden');
+  playlistEditModal.classList.add('hidden');
+};
+playlistEditOverlay.onclick = closePlaylistEdit;
+playlistEditCloseBtn.onclick = closePlaylistEdit;
+
+const closeCustomDialogs = () => {
+  customDialogOverlay.classList.add('hidden');
+  renameDialog.classList.add('hidden');
+  deleteDialog.classList.add('hidden');
+  createPlaylistDialog.classList.add('hidden'); // ⭐️ 추가됨
+  restoreDialog.classList.add('hidden'); // ⭐️ 추가됨
+};
+customDialogOverlay.onclick = closeCustomDialogs;
+renameCancelBtn.onclick = closeCustomDialogs;
+deleteCancelBtn.onclick = closeCustomDialogs;
+createPlaylistCancelBtn.onclick = closeCustomDialogs; // ⭐️ 추가됨
+restoreCancelBtn.onclick = closeCustomDialogs; // ⭐️ 추가됨
+
+// 1. 이름 변경 버튼 눌렀을 때 -> 이름 변경 팝업 띄우기
+renamePlaylistBtn.onclick = () => {
+  if (editingPlaylistIndex === -1) return;
+  const playlist = myPlaylists[editingPlaylistIndex];
+  
+  closePlaylistEdit(); // 기존 메뉴 창은 닫고
+  
+  renameInput.value = playlist.name; // 원래 이름 텍스트창에 미리 써두기
+  customDialogOverlay.classList.remove('hidden');
+  renameDialog.classList.remove('hidden');
+  setTimeout(() => renameInput.focus(), 100); // 텍스트창 자동 선택(커서 깜빡임)
+};
+
+// 1-1. 이름 변경 창에서 '확인' 눌렀을 때
+renameConfirmBtn.onclick = () => {
+  const newName = renameInput.value.trim();
+  const playlist = myPlaylists[editingPlaylistIndex];
+  
+  if (newName !== "" && newName !== playlist.name) {
+    playlist.name = newName;
+    savePlaylists();
+    renderPlaylists();
+    showToast("플레이리스트 이름이 변경되었습니다."); // ⭐️ 성공 토스트
+  }
+  closeCustomDialogs();
+};
+
+// 2. 삭제 버튼 눌렀을 때 -> 삭제 확인 팝업 띄우기
+deletePlaylistBtn.onclick = () => {
+  if (editingPlaylistIndex === -1) return;
+  const playlist = myPlaylists[editingPlaylistIndex];
+  
+  closePlaylistEdit(); 
+  
+  deleteConfirmText.innerHTML = `'<strong>${playlist.name}</strong>' 플레이리스트를 정말 삭제할까요?`;
+  customDialogOverlay.classList.remove('hidden');
+  deleteDialog.classList.remove('hidden');
+};
+
+// 2-1. 삭제 창에서 '삭제' 눌렀을 때
+deleteConfirmBtn.onclick = () => {
+  myPlaylists.splice(editingPlaylistIndex, 1);
+  savePlaylists();
+  renderPlaylists();
+  showToast("플레이리스트가 삭제되었습니다."); // ⭐️ 성공 토스트
+  closeCustomDialogs();
+};
+
+// --- ⭐️ 토스트 알림 함수 ---
+const toastMessage = document.getElementById('toastMessage');
+let toastTimeout;
+
+function showToast(text) {
+  toastMessage.textContent = text;
+  toastMessage.classList.add('show');
+  
+  // 기존에 켜져 있던 타이머가 있다면 취소 (연타 방지)
+  clearTimeout(toastTimeout);
+  
+  // 2.5초 뒤에 스르륵 사라지게 만듦
+  toastTimeout = setTimeout(() => {
+    toastMessage.classList.remove('show');
+  }, 2500);
+}

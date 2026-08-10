@@ -36,7 +36,7 @@
   <!-- 화면 B: 플레이리스트 관리 목록 -->
   <main id="playlistView" class="view-area">
     <div class="playlist-header">
-      <button id="createNewPlaylistBtn">새 플레이리스트 만들기 ➕</button>
+      <button id="createNewPlaylistBtn">➕ 새 플레이리스트 만들기</button>
     </div>
     <div id="playlistContainer">
       <!-- JS가 여기에 플레이리스트 폴더들을 그릴 거야 -->
@@ -97,6 +97,7 @@
       <li id="optPlayLast">마지막에 재생</li>
       <li id="optRemoveQueue">대기열에서 삭제</li>
       <li id="optAddPlaylist">플레이리스트에 추가</li>
+      <li id="optRemoveFromPlaylist">플레이리스트에서 삭제</li>
       <li id="optEditTag">태그 편집</li>
     </ul>
     <button id="optionCloseBtn">닫기</button>
@@ -147,6 +148,65 @@
       <input type="file" id="restoreFileInput" accept=".json" style="display: none;">
     </div>
     <p class="settings-info">백업 파일은 .json 형태로 기기에 저장됩니다. 기기를 변경하거나 기록이 지워졌을 때 복원 버튼을 눌러 복구할 수 있습니다.</p>
+  </div>
+
+  <!-- ⭐️ 플레이리스트 편집 팝업 -->
+  <div id="playlistEditOverlay" class="hidden"></div>
+  <div id="playlistEditModal" class="hidden">
+    <div class="settings-header">
+      <h3 id="playlistEditTitle">플레이리스트 옵션</h3>
+      <button id="playlistEditCloseBtn">✖</button>
+    </div>
+    <div class="settings-body">
+      <button id="renamePlaylistBtn" class="settings-action-btn" style="background: #ff7f00; color: white;">✏️ 이름 변경</button>
+      <button id="deletePlaylistBtn" class="settings-action-btn" style="background: #ff4444; color: white;">🗑️ 플레이리스트 삭제</button>
+    </div>
+  </div>
+
+  <!-- ⭐️ 토스트(말풍선) 알림 -->
+  <div id="toastMessage" class="toast"></div>
+
+  <!-- ⭐️ 커스텀 팝업 모달 (이름 변경 / 삭제 확인) -->
+  <div id="customDialogOverlay" class="hidden"></div>
+
+  <!-- 이름 변경 팝업 -->
+  <div id="renameDialog" class="hidden custom-dialog">
+    <h3>이름 변경</h3>
+    <input type="text" id="renameInput" placeholder="새로운 이름 입력">
+    <div class="dialog-btn-group">
+      <button id="renameCancelBtn" class="dialog-cancel-btn">취소</button>
+      <button id="renameConfirmBtn" class="dialog-confirm-btn">확인</button>
+    </div>
+  </div>
+
+  <!-- 삭제 확인 팝업 -->
+  <div id="deleteDialog" class="hidden custom-dialog">
+    <h3 style="color: #ff4444;">삭제 확인</h3>
+    <p id="deleteConfirmText">정말 삭제하시겠습니까?</p>
+    <div class="dialog-btn-group">
+      <button id="deleteCancelBtn" class="dialog-cancel-btn">취소</button>
+      <button id="deleteConfirmBtn" class="dialog-confirm-btn" style="background: #ff4444; color: white;">삭제</button>
+    </div>
+  </div>
+
+  <!-- ⭐️ 새 플레이리스트 만들기 팝업 -->
+  <div id="createPlaylistDialog" class="hidden custom-dialog">
+    <h3>새 플레이리스트</h3>
+    <input type="text" id="createPlaylistInput" placeholder="플레이리스트 이름 입력">
+    <div class="dialog-btn-group">
+      <button id="createPlaylistCancelBtn" class="dialog-cancel-btn">취소</button>
+      <button id="createPlaylistConfirmBtn" class="dialog-confirm-btn">만들기</button>
+    </div>
+  </div>
+
+  <!-- ⭐️ 데이터 복원 확인 팝업 -->
+  <div id="restoreDialog" class="hidden custom-dialog">
+    <h3 style="color: #ff7f00;">데이터 복원</h3>
+    <p>선택한 백업 파일로 복원하시겠습니까?<br>현재 저장된 데이터는 모두 덮어씌워집니다.</p>
+    <div class="dialog-btn-group">
+      <button id="restoreCancelBtn" class="dialog-cancel-btn">취소</button>
+      <button id="restoreConfirmBtn" class="dialog-confirm-btn">복원</button>
+    </div>
   </div>
 
   <audio id="mainAudio" preload="metadata"></audio>

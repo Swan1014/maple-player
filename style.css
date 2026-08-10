@@ -408,5 +408,77 @@ header h1 {
 .settings-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
 .settings-action-btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
 .btn-backup { background: #ff7f00; color: white; }
-.btn-restore { background: #eee; color: #333; }
+.btn-restore { background: #ff7f00; color: white; }
 .settings-info { padding: 0 20px 20px 20px; margin: 0; font-size: 12px; color: #888; line-height: 1.4; word-break: keep-all; }
+
+/* --- ⭐️ 플레이리스트 편집 팝업 모달 --- */
+#playlistEditOverlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); z-index: 3000; opacity: 1; transition: opacity 0.2s;
+}
+#playlistEditOverlay.hidden { opacity: 0; pointer-events: none; }
+
+#playlistEditModal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1);
+  width: 85%; max-width: 320px; background: #fff; border-radius: 16px; z-index: 3001;
+  transition: transform 0.2s, opacity 0.2s; opacity: 1;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+#playlistEditModal.hidden { transform: translate(-50%, -50%) scale(0.9); opacity: 0; pointer-events: none; }
+
+/* --- ⭐️ 토스트(말풍선) 알림 디자인 --- */
+#toastMessage {
+  position: fixed;
+  bottom: 90px; /* 하단 재생 바 바로 위에 뜨도록 */
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background-color: rgba(30, 30, 30, 0.9);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 9999; /* 화면 제일 위에 뜨도록 */
+  opacity: 0;
+  pointer-events: none; /* 터치 방해 안 함 */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* 토스트가 화면에 나타날 때 부착되는 클래스 */
+#toastMessage.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* --- ⭐️ 커스텀 팝업 (이름 변경, 삭제) 디자인 --- */
+#customDialogOverlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); z-index: 4000; opacity: 1; transition: opacity 0.2s;
+}
+#customDialogOverlay.hidden { opacity: 0; pointer-events: none; }
+
+.custom-dialog {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1);
+  width: 85%; max-width: 300px; background: #fff; border-radius: 16px; z-index: 4001;
+  padding: 20px; box-sizing: border-box; transition: transform 0.2s, opacity 0.2s; opacity: 1;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.custom-dialog.hidden { transform: translate(-50%, -50%) scale(0.9); opacity: 0; pointer-events: none; }
+
+.custom-dialog h3 { margin: 0 0 15px 0; font-size: 18px; color: #333; }
+.custom-dialog p { margin: 0 0 20px 0; font-size: 14px; color: #666; word-break: keep-all; line-height: 1.4; }
+#renameInput, #createPlaylistInput {
+  width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ccc;
+  border-radius: 8px; font-size: 15px; box-sizing: border-box; outline: none;
+}
+#renameInput:focus, #createPlaylistInput:focus { border-color: #ff7f00; }
+
+.dialog-btn-group { display: flex; gap: 10px; }
+.dialog-btn-group button {
+  flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 15px;
+  font-weight: bold; cursor: pointer;
+}
+.dialog-cancel-btn { background: #eee; color: #333; }
+.dialog-confirm-btn { background: #ff7f00; color: white; }
