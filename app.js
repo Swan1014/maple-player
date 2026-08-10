@@ -58,6 +58,10 @@ const createPlaylistConfirmBtn = document.getElementById('createPlaylistConfirmB
 const restoreDialog = document.getElementById('restoreDialog');
 const restoreCancelBtn = document.getElementById('restoreCancelBtn');
 const restoreConfirmBtn = document.getElementById('restoreConfirmBtn');
+const searchBarContainer = document.getElementById('searchBarContainer');
+const playAllShuffleBtn = document.getElementById('playAllShuffleBtn');
+
+let currentDisplayedTracks = []; // ⭐️ 현재 화면에 보이는(검색된) 곡들을 기억할 장부
 
 let tracks = [];
 let customQueue = []; 
@@ -78,21 +82,15 @@ let customTags = [];
 let currentTaggingTrackTitle = ''; // 현재 태그 작업 중인 곡 제목
 
 tabAll.onclick = () => {
-  tabAll.classList.add('active');
-  tabPlaylist.classList.remove('active');
-  trackListContainer.classList.add('active'); 
-  playlistView.classList.remove('active'); 
-  playlistDetailView.classList.remove('active');
-  searchInput.style.display = 'block'; 
+  tabAll.classList.add('active'); tabPlaylist.classList.remove('active');
+  trackListContainer.classList.add('active'); playlistView.classList.remove('active'); playlistDetailView.classList.remove('active');
+  searchBarContainer.style.display = 'flex'; // ⭐️ block에서 flex로, searchInput에서 Container로 변경!
 };
 
 tabPlaylist.onclick = () => {
-  tabPlaylist.classList.add('active');
-  tabAll.classList.remove('active');
-  playlistView.classList.add('active'); 
-  trackListContainer.classList.remove('active'); 
-  playlistDetailView.classList.remove('active');
-  searchInput.style.display = 'none'; 
+  tabPlaylist.classList.add('active'); tabAll.classList.remove('active');
+  playlistView.classList.add('active'); trackListContainer.classList.remove('active'); playlistDetailView.classList.remove('active');
+  searchBarContainer.style.display = 'none'; // ⭐️ Container 숨기기
 };
 
 // ⭐️ 태그 데이터 불러오기/저장하기
@@ -132,8 +130,39 @@ function applySearch() {
            matchCustomTag;
   });
   
+  currentDisplayedTracks = filteredTracks;
   renderTracks(filteredTracks);
 }
+
+playAllShuffleBtn.onclick = () => {
+  if (currentDisplayedTracks.length === 0) {
+    showToast("재생할 곡이 없습니다.");
+    return;
+  }
+
+  // 1. 현재 화면에 보이는 곡들의 원본 번호(index)를 찾아 배열로 만듦
+  const targetIndices = currentDisplayedTracks.map(t => tracks.findIndex(orig => orig.title === t.title));
+
+  // 2. 셔플 모드 강제 켜기 (하단 플레이어 바의 셔플 버튼도 주황색으로 불 들어오게 연동!)
+  isShuffle = true;
+  shuffleBtn.classList.add('active');
+
+  // 3. 대기열 백업 (나중에 셔플 풀 때 돌아갈 원래 순서)
+  originalQueue = [...targetIndices];
+  
+  // 4. 셔플 적용 (위에서 만들어뒀던 shuffleArray 함수 사용)
+  let shuffled = [...targetIndices];
+  shuffleArray(shuffled);
+  
+  // 5. 대기열 덮어쓰고 재생!
+  customQueue = shuffled;
+  queueCursor = 0; // 첫 번째 곡부터 시작
+
+  loadAndPlay(customQueue[queueCursor]);
+  renderQueue();
+  
+  showToast(`검색된 ${customQueue.length}곡이 셔플 재생됩니다.`);
+};
 
 searchInput.addEventListener('input', applySearch);
 

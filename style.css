@@ -482,3 +482,31 @@ header h1 {
 }
 .dialog-cancel-btn { background: #eee; color: #333; }
 .dialog-confirm-btn { background: #ff7f00; color: white; }
+
+/* --- ⭐️ 검색창 + 전체 셔플 버튼 디자인 --- */
+.search-bar-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.search-bar-container input {
+  flex: 1; /* 검색창이 남는 공간을 다 차지하게 함 */
+  margin-bottom: 0 !important; /* 기존 검색창의 띄어쓰기 무시 */
+}
+.search-shuffle-btn {
+  background: #ff7f00;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0 7px;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+.search-shuffle-btn:active {
+  transform: scale(0.95); /* 누를 때 살짝 작아지는 디테일 */
+}
