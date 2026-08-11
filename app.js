@@ -552,6 +552,8 @@ function loadAndPlay(index) {
   currentAudio.play().catch(e => console.error("재생 실패:", e)); 
   
   currentTitle.textContent = track.title; 
+  // ⭐️ 재생 바 UI에 곡 설명 뜨게 연결
+  document.getElementById('currentDesc').textContent = track.description || "메이플스토리 BGM"; 
   
   // ⭐️ 하단 재생 바에 아이콘 띄우기
   const currentIcon = document.getElementById('currentIcon');
@@ -924,3 +926,51 @@ function showToast(text) {
     toastMessage.classList.remove('show');
   }, 2500);
 }
+
+// --- ⭐️ 진행 바 및 재생 시간 로직 ---
+const progressBar = document.getElementById('progressBar');
+const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+const durationDisplay = document.getElementById('durationDisplay');
+
+// 초 단위 숫자를 '0:00' 포맷으로 예쁘게 바꿔주는 함수
+function formatTime(seconds) {
+  if (isNaN(seconds)) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+// 1. 노래가 새로 로드되면 총 길이를 파악해서 세팅
+currentAudio.addEventListener('loadedmetadata', () => {
+  progressBar.max = currentAudio.duration;
+  durationDisplay.textContent = formatTime(currentAudio.duration);
+});
+
+let isDragging = false; // 드래그(조작) 중인지 체크
+
+// 2. 노래가 흐를 때 실시간으로 진행 바 갱신
+currentAudio.addEventListener('timeupdate', () => {
+  if (!isDragging) { // 내가 손으로 잡고 있지 않을 때만 알아서 흘러감
+    progressBar.value = currentAudio.currentTime;
+    currentTimeDisplay.textContent = formatTime(currentAudio.currentTime);
+    
+    // 진행된 만큼 주황색 색상 채우기!
+    const percent = (currentAudio.currentTime / currentAudio.duration) * 100 || 0;
+    progressBar.style.background = `linear-gradient(to right, #ff7f00 ${percent}%, rgba(255,255,255,0.1) ${percent}%)`;
+  }
+});
+
+// 3. 진행 바를 손으로 드래그하는 중일 때 (시간 텍스트랑 색상만 먼저 바뀜)
+progressBar.addEventListener('input', () => {
+  isDragging = true;
+  currentTimeDisplay.textContent = formatTime(progressBar.value);
+  
+  const percent = (progressBar.value / currentAudio.duration) * 100 || 0;
+  progressBar.style.background = `linear-gradient(to right, #ff7f00 ${percent}%, rgba(255,255,255,0.1) ${percent}%)`;
+});
+
+// 4. 손을 딱 놨을 때 (그 위치로 진짜 재생 시간 이동!)
+progressBar.addEventListener('change', () => {
+  currentAudio.currentTime = progressBar.value;
+  isDragging = false;
+});
