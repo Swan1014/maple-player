@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>🍁 메이플 BGM JSON 자동 편집기</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+    h1 { color: #ff7f00; text-align: center; }
+    .container { max-width: 1050px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    
+    .step-box { background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #ff7f00; }
+    .step-box h3 { margin: 0 0 10px 0; font-size: 16px; }
+    input[type="file"] { margin-top: 5px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; vertical-align: middle; }
+    th { background: #f8f9fa; }
+    
+    input[type="text"] { width: 90%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    
+    /* ⭐️ 드래그 앤 드롭 존 & 썸네일 스타일 */
+    .icon-drop-zone {
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      padding: 6px 10px;
+      text-align: center;
+      cursor: pointer;
+      background: #fafafa;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      transition: all 0.2s;
+    }
+    .icon-drop-zone.dragover {
+      border-color: #ff7f00;
+      background: #fff3e0;
+    }
+    .icon-preview {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      border-radius: 4px;
+      background: #eee;
+      display: none; /* 아이콘이 들어오기 전엔 숨김 */
+      border: 1px solid #ccc;
+      flex-shrink: 0;
+    }
+    .icon-label-text {
+      font-size: 11px;
+      color: #666;
+      word-break: break-all;
+      text-align: left;
+    }
+    .icon-drop-zone input[type="file"] { display: none; }
+
+    .btn-download { display: block; width: 100%; padding: 15px; margin-top: 30px; background: #ff7f00; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
+    .btn-download:hover { background: #e67300; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🍁 메이플 BGM JSON 자동 편집기</h1>
+
+    <div class="step-box">
+      <h3>1단계: 기존 작업 불러오기 (이어서 작업할 때만)</h3>
+      <p style="font-size: 13px; margin: 0 0 10px 0; color: #666;">이전에 만든 data.json이 있다면 선택하세요. 새로운 파일들은 그 아래로(ID가 증가하며) 이어붙여집니다.</p>
+      <input type="file" id="jsonInput" accept=".json">
+      <span id="jsonStatus" style="font-size:13px; color:green; font-weight:bold; margin-left:10px;"></span>
+    </div>
+
+    <div class="step-box">
+      <h3>2단계: 새로운 BGM (MP3) 파일들 등록하기</h3>
+      <input type="file" id="mp3Input" accept=".mp3" multiple>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 50px;">ID</th>
+          <th style="width: 25%;">제목 (Title) & 파일명</th>
+          <th style="width: 25%;">설명 (Description)</th>
+          <th style="width: 20%;">태그 (Tags) <br><span style="font-size:11px; font-weight:normal;">쉼표(,)로 구분</span></th>
+          <th style="width: 22%;">아이콘 (PNG 드래그 & 미리보기)</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- JS로 리스트 렌더링 -->
+      </tbody>
+    </table>
+
+    <button class="btn-download" id="downloadBtn">최종 data.json 다운로드</button>
+  </div>
+
+  <script>
+    let baseData = []; 
+    let newData = [];  
+    let currentMaxId = 0;
+
+    const jsonInput = document.getElementById('jsonInput');
+    const mp3Input = document.getElementById('mp3Input');
+    const tableBody = document.getElementById('tableBody');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const jsonStatus = document.getElementById('jsonStatus');
+
+    jsonInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          baseData = JSON.parse(event.target.result);
+          if (baseData.length > 0) {
+            currentMaxId = Math.max(...baseData.map(item => item.id || 0));
+          }
+          jsonStatus.textContent = `기존 데이터 ${baseData.length}개 불러오기 완료! (마지막 ID: ${currentMaxId})`;
+        } catch (err) {
+          alert("JSON 파일을 읽는 중 오류가 발생했습니다.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    mp3Input.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      files.forEach(file => {
+        currentMaxId++; 
+        const filename = file.name;
+        const title = filename.replace('.mp3', ''); 
+
+        newData.push({
+          id: currentMaxId,
+          title: title,
+          description: "",
+          filename: filename,
+          tags: [],
+          icon: ""
+        });
+      });
+
+      renderTable();
+    });
+
+    function renderTable() {
+      tableBody.innerHTML = '';
+
+      newData.forEach((data, index) => {
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+          <td>${data.id}</td>
+          <td>
+            <strong>${data.title}</strong><br>
+            <span style="font-size:11px; color:#888;">${data.filename}</span>
+          </td>
+          <td>
+            <input type="text" placeholder="예: 빅토리아아일랜드 : 헤네시스" 
+                   oninput="updateData(${index}, 'description', this.value)">
+          </td>
+          <td>
+            <input type="text" placeholder="마을, 빅토리아아일랜드" 
+                   oninput="updateData(${index}, 'tags', this.value)">
+          </td>
+          <td>
+            <!-- ⭐️ 드래그 앤 드롭 영역 + 이미지 미리보기 -->
+            <div class="icon-drop-zone" 
+                 ondragover="handleDragOver(event)" 
+                 ondragleave="handleDragLeave(event)" 
+                 ondrop="handleDrop(event, ${index})"
+                 onclick="document.getElementById('file-input-${index}').click()">
+              <img id="icon-preview-${index}" class="icon-preview" alt="미리보기">
+              <span id="icon-label-${index}" class="icon-label-text">PNG 드래그 또는 클릭</span>
+              <input type="file" id="file-input-${index}" accept=".png" onchange="updateIcon(${index}, this)">
+            </div>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    window.updateData = (index, key, value) => {
+      if (key === 'tags') {
+        newData[index][key] = value.split(',').map(tag => tag.trim()).filter(tag => tag !== "");
+      } else {
+        newData[index][key] = value;
+      }
+    }
+
+    // ⭐️ 드래그 앤 드롭 이벤트 핸들러들
+    window.handleDragOver = (e) => {
+      e.preventDefault();
+      e.currentTarget.classList.add('dragover');
+    }
+
+    window.handleDragLeave = (e) => {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+    }
+
+    window.handleDrop = (e, index) => {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === 'image/png') {
+        processIconFile(index, file);
+      } else {
+        alert("PNG 이미지 파일만 드래그할 수 있습니다!");
+      }
+    }
+
+    window.updateIcon = (index, inputElement) => {
+      const file = inputElement.files[0];
+      if (file) {
+        processIconFile(index, file);
+      }
+    }
+
+    // ⭐️ 공통 처리 함수: 파일명 저장 + 썸네일 미리보기 띄우기
+    function processIconFile(index, file) {
+      newData[index].icon = file.name;
+
+      const previewImg = document.getElementById(`icon-preview-${index}`);
+      const labelSpan = document.getElementById(`icon-label-${index}`);
+
+      const objectUrl = URL.createObjectURL(file);
+      previewImg.src = objectUrl;
+      previewImg.style.display = 'block'; // 이미지 보이기
+      labelSpan.textContent = file.name;    // 파일 이름 텍스트 표시
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      const finalData = [...baseData, ...newData];
+
+      if (finalData.length === 0) {
+        alert("다운로드할 데이터가 없습니다!");
+        return;
+      }
+
+      const jsonString = JSON.stringify(finalData, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'data.json';
+      a.click();
+      
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>

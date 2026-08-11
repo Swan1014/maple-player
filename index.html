@@ -53,7 +53,11 @@
       <h2 id="detailTitle">플레이리스트 이름</h2>
       <p id="detailCount">0곡</p>
       <!-- ⭐️ 커다란 전체 재생 버튼 -->
-      <button id="playAllBtn">전체 재생 ▶️</button>
+      <!-- ⭐️ 플레이리스트 재생 버튼 그룹 (전체 재생 & 셔플 재생 반반 배치) -->
+      <div class="playlist-action-buttons">
+        <button id="playAllBtn" class="play-all-btn">▶️ 전체 재생</button>
+        <button id="playAllShufflePlaylistBtn" class="shuffle-playlist-btn">🔀 셔플 재생</button>
+      </div>
     </div>
     <!-- 이 플레이리스트에 들어있는 곡들이 뜰 공간 -->
     <div id="detailTrackList"></div>
@@ -83,9 +87,9 @@
         <!-- 2단: 컨트롤 버튼 -->
         <div class="controls">
           <button id="shuffleBtn" class="toggle-btn">🔀</button>
-          <button id="prevBtn">⏮</button>
+          <button id="prevBtn">⏮️</button>
           <button id="playBtn" class="play-btn-large">▶️</button>
-          <button id="nextBtn">⏭</button>
+          <button id="nextBtn">⏭️</button>
           <button id="repeatBtn" class="toggle-btn">🔁</button>
         </div>
       </div>
@@ -228,6 +232,16 @@
     <div class="dialog-btn-group">
       <button id="restoreCancelBtn" class="dialog-cancel-btn">취소</button>
       <button id="restoreConfirmBtn" class="dialog-confirm-btn">복원</button>
+    </div>
+  </div>
+
+  <!-- ⭐️ 태그 삭제 확인 팝업 -->
+  <div id="tagDeleteDialog" class="hidden custom-dialog">
+    <h3 style="color: #ff4444;">태그 삭제</h3>
+    <p id="tagDeleteConfirmText">정말 삭제하시겠습니까?</p>
+    <div class="dialog-btn-group">
+      <button id="tagDeleteCancelBtn" class="dialog-cancel-btn">취소</button>
+      <button id="tagDeleteConfirmBtn" class="dialog-confirm-btn" style="background: #ff4444; color: white;">삭제</button>
     </div>
   </div>
 

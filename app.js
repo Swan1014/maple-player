@@ -60,6 +60,12 @@ const restoreCancelBtn = document.getElementById('restoreCancelBtn');
 const restoreConfirmBtn = document.getElementById('restoreConfirmBtn');
 const searchBarContainer = document.getElementById('searchBarContainer');
 const playAllShuffleBtn = document.getElementById('playAllShuffleBtn');
+const playAllShufflePlaylistBtn = document.getElementById('playAllShufflePlaylistBtn');
+
+const tagDeleteDialog = document.getElementById('tagDeleteDialog');
+const tagDeleteConfirmText = document.getElementById('tagDeleteConfirmText');
+const tagDeleteCancelBtn = document.getElementById('tagDeleteCancelBtn');
+const tagDeleteConfirmBtn = document.getElementById('tagDeleteConfirmBtn');
 
 let currentDisplayedTracks = []; // ⭐️ 현재 화면에 보이는(검색된) 곡들을 기억할 장부
 
@@ -314,13 +320,22 @@ function renderTagCheckList() {
       saveCustomTags();
     };
     
-    // 2. 태그 완전 삭제 버튼
+    // 2. ⭐️ 태그 완전 삭제 버튼 (브라우저 기본 팝업 -> 커스텀 팝업으로 교체!)
     li.querySelector('.delete-tag-btn').onclick = () => {
-      if(confirm(`'${tag.name}' 태그를 완전히 삭제할까요?`)) {
-        customTags = customTags.filter(t => t.id !== tag.id);
-        saveCustomTags();
-        renderTagCheckList();
-      }
+      
+      // ① 먼저 우리가 만든 예쁜 팝업을 띄운다
+      tagDeleteConfirmText.innerHTML = `'<strong>${tag.name}</strong>' 태그를 완전히 삭제할까요?<br>이 작업은 되돌릴 수 없습니다.`;
+      customDialogOverlay.classList.remove('hidden');
+      tagDeleteDialog.classList.remove('hidden');
+      
+      // ② 팝업 안의 '삭제' 버튼을 눌렀을 때 진짜로 삭제되게 연결!
+      tagDeleteConfirmBtn.onclick = () => {
+        customTags = customTags.filter(t => t.id !== tag.id); // 태그 데이터 날리기
+        saveCustomTags(); // 장부에 저장
+        renderTagCheckList(); // 화면 다시 그리기
+        showToast("태그가 삭제되었습니다."); // ⭐️ 성공 토스트 알림!
+        closeCustomDialogs(); // 팝업 닫기
+      };
     };
     
     tagCheckList.appendChild(li);
@@ -721,7 +736,44 @@ function openPlaylistDetail(playlistIndex) {
       detailTrackList.appendChild(trackDiv);
     });
   }
-  playAllBtn.onclick = () => { if (playlist.tracks.length === 0) { alert("재생할 곡이 없습니다."); return; } isShuffle = false; shuffleBtn.classList.remove('active'); originalQueue = []; customQueue = [...playlist.tracks]; queueCursor = 0; loadAndPlay(customQueue[queueCursor]); renderQueue(); };
+  playAllBtn.onclick = () => { 
+    if (playlist.tracks.length === 0) { showToast("재생할 곡이 없습니다."); return; } 
+    isShuffle = false; 
+    shuffleBtn.classList.remove('active'); 
+    originalQueue = []; 
+    customQueue = [...playlist.tracks]; 
+    queueCursor = 0; 
+    loadAndPlay(customQueue[queueCursor]); 
+    renderQueue(); 
+    showToast(`'${playlist.name}' ${customQueue.length}곡이 재생됩니다.`);
+  };
+
+  // ⭐️ 새로 추가된 플레이리스트 셔플 재생 로직
+  playAllShufflePlaylistBtn.onclick = () => {
+    if (playlist.tracks.length === 0) { 
+      showToast("재생할 곡이 없습니다."); 
+      return; 
+    }
+    
+    // 1. 하단 플레이어 바의 셔플 모드 강제 ON
+    isShuffle = true;
+    shuffleBtn.classList.add('active');
+    
+    // 2. 대기열 백업 및 섞기
+    originalQueue = [...playlist.tracks];
+    let shuffled = [...playlist.tracks];
+    shuffleArray(shuffled);
+    
+    // 3. 섞인 곡들을 대기열에 덮어쓰고 재생!
+    customQueue = shuffled;
+    queueCursor = 0;
+    
+    loadAndPlay(customQueue[queueCursor]);
+    renderQueue();
+    
+    // 4. 기분 좋은 토스트 알림!
+    showToast(`'${playlist.name}' ${customQueue.length}곡이 셔플 재생됩니다.`);
+  };
 }
 
 backToPlaylistBtn.onclick = () => { playlistDetailView.classList.remove('active'); playlistView.classList.add('active'); };
@@ -855,12 +907,14 @@ const closeCustomDialogs = () => {
   deleteDialog.classList.add('hidden');
   createPlaylistDialog.classList.add('hidden'); // ⭐️ 추가됨
   restoreDialog.classList.add('hidden'); // ⭐️ 추가됨
+  tagDeleteDialog.classList.add('hidden');
 };
 customDialogOverlay.onclick = closeCustomDialogs;
 renameCancelBtn.onclick = closeCustomDialogs;
 deleteCancelBtn.onclick = closeCustomDialogs;
 createPlaylistCancelBtn.onclick = closeCustomDialogs; // ⭐️ 추가됨
 restoreCancelBtn.onclick = closeCustomDialogs; // ⭐️ 추가됨
+tagDeleteCancelBtn.onclick = closeCustomDialogs;
 
 // 1. 이름 변경 버튼 눌렀을 때 -> 이름 변경 팝업 띄우기
 renamePlaylistBtn.onclick = () => {
@@ -896,7 +950,7 @@ deletePlaylistBtn.onclick = () => {
   
   closePlaylistEdit(); 
   
-  deleteConfirmText.innerHTML = `'<strong>${playlist.name}</strong>' 플레이리스트를 정말 삭제할까요?`;
+  deleteConfirmText.innerHTML = `'<strong>${playlist.name}</strong>' 플레이리스트를 정말 삭제할까요?<br>이 작업은 되돌릴 수 없습니다.`;
   customDialogOverlay.classList.remove('hidden');
   deleteDialog.classList.remove('hidden');
 };

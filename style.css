@@ -429,7 +429,7 @@ header h1 {
 /* --- ⭐️ 토스트(말풍선) 알림 디자인 --- */
 #toastMessage {
   position: fixed;
-  bottom: 90px; /* 하단 재생 바 바로 위에 뜨도록 */
+  bottom: 110px; /* 하단 재생 바 바로 위에 뜨도록 */
   left: 50%;
   transform: translateX(-50%) translateY(20px);
   background-color: rgba(30, 30, 30, 0.9);
@@ -668,4 +668,72 @@ header h1 {
 .progress-bar:hover::-webkit-slider-thumb,
 .progress-bar:active::-webkit-slider-thumb {
   opacity: 1;
+}
+
+/* --- ⭐️ 대기열 부드러운 스크롤 및 세련된 스크롤바 디자인 --- */
+
+.queue-list {
+  flex: 1 !important;           /* 헤더(재생 대기열 글씨) 아래 남은 공간을 온전히 다 차지함 */
+  overflow-y: auto !important;  /* 곡이 공간보다 많아지면 세로 스크롤 활성화 */
+  -webkit-overflow-scrolling: touch; /* 아이폰(iOS)에서 쫀득하고 부드러운 스크롤 지원 */
+  padding-bottom: 30px;         /* 맨 마지막 곡이 화면 바닥에 딱 붙지 않게 여유 공간 */
+}
+
+/* 🎨 커스텀 스크롤바 디자인 (웹킷 브라우저 전용) */
+.queue-list::-webkit-scrollbar {
+  width: 5px; /* 스크롤바 두께를 아주 얇고 세련되게 */
+}
+
+.queue-list::-webkit-scrollbar-track {
+  background: transparent; /* 스크롤바가 다니는 길은 안 보이게 투명 처리 */
+}
+
+.queue-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2); /* 평소 스크롤 손잡이는 눈에 띄지 않는 반투명 흰색 */
+  border-radius: 10px; /* 손잡이를 둥글게 깎아줌 */
+}
+
+.queue-list::-webkit-scrollbar-thumb:hover,
+.queue-list::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 127, 0, 0.8); /* 마우스를 올리거나 스크롤을 잡으면 메이플 주황색으로 빛남! */
+}
+
+.bottom-sheet,
+.bottom-sheet.expanded {
+  /* ease-in-out: 시작할 때 스르륵~ 끝날 때 스르륵~ (올라갈 때와 내려갈 때 느낌이 완벽히 똑같음) */
+  transition: transform 0.2s ease-in-out, height 0.2s ease-in-out !important;
+  will-change: transform, height;
+}
+
+/* --- ⭐️ 플레이리스트 재생 버튼 그룹 디자인 --- */
+/* --- ⭐️ 플레이리스트 재생 버튼 그룹 디자인 (쌍둥이 통일) --- */
+.playlist-action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* 두 버튼 모두 똑같은 주황색, 똑같은 모서리로 강제 통일! */
+#playAllBtn, 
+#playAllShufflePlaylistBtn {
+  flex: 1;
+  padding: 12px !important;
+  border: none !important;
+  border-radius: 8px !important; /* 모서리 동일하게 고정 */
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: transform 0.1s;
+  background: #ff7f00 !important; /* 둘 다 예쁜 메이플 주황색! */
+  color: white !important;
+}
+
+#playAllBtn:active, 
+#playAllShufflePlaylistBtn:active {
+  transform: scale(0.97); /* 누를 때 쫀득한 느낌 */
 }
