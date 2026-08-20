@@ -67,6 +67,8 @@ const tagDeleteConfirmText = document.getElementById('tagDeleteConfirmText');
 const tagDeleteCancelBtn = document.getElementById('tagDeleteCancelBtn');
 const tagDeleteConfirmBtn = document.getElementById('tagDeleteConfirmBtn');
 
+const clearSearchBtn = document.getElementById('clearSearchBtn');
+
 let currentDisplayedTracks = []; // ⭐️ 현재 화면에 보이는(검색된) 곡들을 기억할 장부
 
 let tracks = [];
@@ -1028,9 +1030,6 @@ progressBar.addEventListener('change', () => {
   currentAudio.currentTime = progressBar.value;
   isDragging = false;
 });
-
-// --- ⭐️ 검색창 초기화(X) 버튼 로직 ---
-const clearSearchBtn = document.getElementById('clearSearchBtn');
 
 // 1. 키보드로 글씨를 입력할 때마다 X 버튼을 보여줄지 말지 결정
 searchInput.addEventListener('input', () => {
