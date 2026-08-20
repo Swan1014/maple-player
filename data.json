@@ -7422,5 +7422,86 @@
     "filename": "Maple Home BGM Piano.mp3",
     "tags": [],
     "icon": ""
+  },
+  {
+    "id": 831,
+    "title": "An Uneasy Victory",
+    "description": "솔라툼 골짜기: 솔라툼의 유산·보스 벨로나 보상맵",
+    "filename": "An Uneasy Victory.mp3",
+    "tags": [
+      "솔라툼 골짜기: 솔라툼의 유산·보스 벨로나 퇴장맵",
+      "솔라툼: 솔라툼의 유산·보스 벨로나 보상맵"
+    ],
+    "icon": "TeneaTemple.png"
+  },
+  {
+    "id": 832,
+    "title": "Signal of Insane",
+    "description": "솔라툼 골짜기: 추방자의 협곡·보스 벨로나 입장맵",
+    "filename": "Signal of Insane.mp3",
+    "tags": [
+      "솔라툼: 추방자의 협곡·보스 벨로나 입장맵"
+    ],
+    "icon": "TeneaTemple.png"
+  },
+  {
+    "id": 833,
+    "title": "Fractured Sanctum",
+    "description": "솔라툼 골짜기: 테네아 신전·보스 벨로나 1페이즈",
+    "filename": "Fractured Sanctum.mp3",
+    "tags": [
+      "솔라툼: 테네아 신전·보스 벨로나 1페이즈"
+    ],
+    "icon": "TeneaTemple.png"
+  },
+  {
+    "id": 834,
+    "title": "The Gift Never Received",
+    "description": "미션 울티마 스토리",
+    "filename": "The Gift Never Received.mp3",
+    "tags": [
+      "울티마 폴리스 스토리"
+    ],
+    "icon": "UltimaPolis.png"
+  },
+  {
+    "id": 835,
+    "title": "Absolute Throne",
+    "description": "미션 울티마 스토리",
+    "filename": "Absolute Throne.mp3",
+    "tags": [
+      "울티마 폴리스 스토리"
+    ],
+    "icon": "UltimaPolis.png"
+  },
+  {
+    "id": 836,
+    "title": "Phase2_Insane",
+    "description": "솔라툼 골짜기: 저주받은 테네아 신전·보스 벨로나 2페이즈 (인세인)",
+    "filename": "Phase2_Insane.mp3",
+    "tags": [
+      "솔라툼: 저주받은 테네아 신전·보스 벨로나 2페이즈 (인세인)"
+    ],
+    "icon": "TeneaTemple.png"
+  },
+  {
+    "id": 837,
+    "title": "Phase2_Normal",
+    "description": "솔라툼 골짜기: 저주받은 테네아 신전·보스 벨로나 2페이즈",
+    "filename": "Phase2_Normal.mp3",
+    "tags": [
+      "솔라툼: 저주받은 테네아 신전·보스 벨로나 2페이즈"
+    ],
+    "icon": "TeneaTemple.png"
+  },
+  {
+    "id": 838,
+    "title": "Phase1_Insane",
+    "description": "솔라툼 골짜기: 테네아 신전·보스 벨로나 1페이즈 (인세인)",
+    "filename": "Phase1_Insane.mp3",
+    "tags": [
+      "솔라툼: 테네아 신전·보스 벨로나 1페이즈 (인세인)"
+    ],
+    "icon": "TeneaTemple.png"
   }
 ]
