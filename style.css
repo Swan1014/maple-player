@@ -702,7 +702,7 @@ header h1 {
 .bottom-sheet.expanded {
   /* ease-in-out: 시작할 때 스르륵~ 끝날 때 스르륵~ (올라갈 때와 내려갈 때 느낌이 완벽히 똑같음) */
   transition: transform 0.2s ease-in-out, height 0.2s ease-in-out !important;
-  will-change: transform, height;
+  will-change: height;
 }
 
 /* --- ⭐️ 플레이리스트 재생 버튼 그룹 디자인 --- */
@@ -736,4 +736,38 @@ header h1 {
 #playAllBtn:active, 
 #playAllShufflePlaylistBtn:active {
   transform: scale(0.97); /* 누를 때 쫀득한 느낌 */
+}
+
+/* --- ⭐️ 검색창 초기화(X) 버튼 디자인 --- */
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative; /* X 버튼이 이 껍데기를 기준으로 위치를 잡게 함 */
+  display: flex;
+  align-items: center;
+}
+
+.search-input-wrapper input {
+  width: 100%;
+  padding-right: 35px !important; /* 글씨가 X 버튼 밑으로 파고들지 않게 우측 여백 확보 */
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 10px;      /* 오른쪽 끝에서 10px 띄움 */
+  background: none;
+  border: none;
+  color: #aaa;      /* 세련된 회색 */
+  font-size: 14px;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.1s;
+}
+
+.clear-search-btn:hover,
+.clear-search-btn:active {
+  color: #555; /* 마우스를 올리거나 누르면 살짝 진해짐 */
 }

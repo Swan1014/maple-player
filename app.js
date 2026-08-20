@@ -1028,3 +1028,23 @@ progressBar.addEventListener('change', () => {
   currentAudio.currentTime = progressBar.value;
   isDragging = false;
 });
+
+// --- ⭐️ 검색창 초기화(X) 버튼 로직 ---
+const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+// 1. 키보드로 글씨를 입력할 때마다 X 버튼을 보여줄지 말지 결정
+searchInput.addEventListener('input', () => {
+  if (searchInput.value.length > 0) {
+    clearSearchBtn.style.display = 'flex'; // 글씨가 한 글자라도 있으면 보임
+  } else {
+    clearSearchBtn.style.display = 'none'; // 다 지워지면 숨김
+  }
+});
+
+// 2. X 버튼을 눌렀을 때의 동작
+clearSearchBtn.onclick = () => {
+  searchInput.value = '';                 // 검색창 글씨 싹 지우기
+  clearSearchBtn.style.display = 'none';  // X 버튼 다시 숨기기
+  searchInput.focus();                    // 바로 다시 검색할 수 있게 커서 깜빡임 유지!
+  applySearch();                          // ⭐️ 화면에 원래 전체 곡 리스트로 되돌려놓기
+};
