@@ -7503,5 +7503,52 @@
       "솔라툼: 테네아 신전·보스 벨로나 1페이즈 (인세인)"
     ],
     "icon": "TeneaTemple.png"
+  },
+  {
+    "id": 839,
+    "title": "The Captive's Requiem",
+    "description": "아우룸 레기스: 특별 죄수실",
+    "filename": "The Captive's Requiem.mp3",
+    "tags": [],
+    "icon": "AurumRegis.png"
+  },
+  {
+    "id": 840,
+    "title": "The Buried Sentinel",
+    "description": "아우룸 레기스: 파수꾼의 방",
+    "filename": "The Buried Sentinel.mp3",
+    "tags": [],
+    "icon": "AurumRegis.png"
+  },
+  {
+    "id": 841,
+    "title": "Shadows of the Golden Gate",
+    "description": "아우룸 레기스",
+    "filename": "Shadows of the Golden Gate.mp3",
+    "tags": [
+      "아우룸 레기스 필드"
+    ],
+    "icon": "AurumRegis.png"
+  },
+  {
+    "id": 842,
+    "title": "Cradle of Monsters",
+    "description": "아르고 호의 방문객: 미출간본 페이지",
+    "filename": "Cradle of Monsters.mp3",
+    "tags": [
+      "아르고 호의 방문객: 하이레프군의 연구실",
+      "미출간본 페이지: 하이레프군의 연구실"
+    ],
+    "icon": "Argo.png"
+  },
+  {
+    "id": 843,
+    "title": "The flying Argo",
+    "description": "아르고 호의 방문객",
+    "filename": "The flying Argo.mp3",
+    "tags": [
+      "아르고 호: 갑판"
+    ],
+    "icon": "Argo.png"
   }
 ]
